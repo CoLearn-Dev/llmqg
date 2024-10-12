@@ -12,6 +12,7 @@ client = openai.OpenAI(
 def word_cnt(s):
     return len([x.strip() for x in s.split() if len(x.strip()) > 1])
 
+
 def retry_until(f, kargs, p, retry=3):
     for i in range(retry):
         try:
@@ -112,12 +113,15 @@ def generate_ans(x, enforce_short=None):
         messages=[
             {
                 "role": "system",
-                "content": GENERATE_ANS_SYS_PROMPT if enforce_short is None else 
-                    (
+                "content": (
+                    GENERATE_ANS_SYS_PROMPT
+                    if enforce_short is None
+                    else (
                         GENERATE_ANS_SHORT_SYS_PROMPT
                         if enforce_short == 0
                         else GENERATE_LIMIT_NUM_ANS_SYS_PROMPT.format(enforce_short)
-                    ),
+                    )
+                ),
             },
             {
                 "role": "user",
@@ -164,6 +168,38 @@ def check_ans_star(p):
     if len(lines) == 1:
         return try_parse_int(lines[0].strip()), ""
     return try_parse_int(lines[0].strip()), lines[1].strip()
+
+
+def select_relevant_sents(q, sents):
+    sent_list = "\n".join([f"{i+1}. {s}" for i, s in enumerate(sents)])
+    completion = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "system",
+                "content": SELECT_RELEVANT_SENTS_SYS_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": f"Question:\n{q}\nSentences:\n{sent_list}",
+            },
+        ],
+    )
+    generated = completion.choices[0].message.content
+
+    def try_parse_int(x):
+        try:
+            r = int(x)
+            if r < 1 or r > len(sents):
+                return -1
+            return r
+        except:
+            return -1
+
+    sent_ids = [try_parse_int(t.strip()) for t in generated.split(",")]
+    sent_ids = set([x - 1 for x in sent_ids if x != -1])  # filter out -1
+    # print(generated, sent_ids)
+    return sent_ids
 
 
 if __name__ == "__main__":

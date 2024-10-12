@@ -65,3 +65,9 @@ Provide a very concise answer without repeating the question.
 GENERATE_LIMIT_NUM_ANS_SYS_PROMPT = GENERATE_ANS_SYS_PROMPT + """\
 Please ensure that your answer contains no more than {} words.
 """
+
+SELECT_RELEVANT_SENTS_SYS_PROMPT = """\
+Select the minimal set of context sentences most relevant to answering the question. 
+You need to choose at least one sentence and can select multiple sentences.
+Output only the sentence numbers of these sentences in a comma-separated list on a single line without any additional text.
+"""

@@ -8,6 +8,7 @@ from tqdm.contrib.concurrent import process_map
 import llm_utils
 import prompts
 from ans_len import packed_detect_ans_len_req
+from coverage import detect_coverage
 
 shortcuts = {
     "trivia": my_datasets.TRIVIA_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
@@ -182,11 +183,40 @@ class CQA_Inspector:
             print(f"# Minimize answer length - {data_path}")
             df = pd.DataFrame([x for x, _ in shorter])
             print(df.describe())
+            print("## Reduction rate:")
+            df = pd.DataFrame([x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)])
+            print(df.describe())
             # df = pd.DataFrame([x for (x, _), t in zip(shorter, qtype) if t[0] == 2])
             # print(df.describe())
 
-    def coverage(self, data_path, gen_path):
-        pass  # TODO
+    def cover(self, data_path, gen_path=None):
+        if data_path in shortcuts:
+            data_path = shortcuts[data_path]
+        print(f"# Coverage - {data_path}")
+        with open(data_path, "rb") as f:
+            cqas = pickle.load(f)
+        
+        if gen_path is None:
+            gen_path = data_path.replace("cqas", "cov")
+        
+        cov = gen_then_cache(
+            cqas,
+            detect_coverage,
+            gen_path,
+        )
+        print("## word level")
+        df = pd.DataFrame([x for x, _, _ in cov])
+        print(df.describe())
+        print("## word cnt")
+        df = pd.DataFrame([x['total'] for _, _, x in cov])
+        print(df.describe())
+
+        print("## sent level")
+        df = pd.DataFrame([x for _, x, _ in cov])
+        print(df.describe())
+        print("## sent cnt")
+        df = pd.DataFrame([len(x['sents']) for _, _, x in cov])
+        print(df.describe())
 
 
 if __name__ == "__main__":
