@@ -1,6 +1,15 @@
 import openai
 import re
-from prompts import *
+from prompts import (
+    QUESTION_GENERATION_SYS_PROMPT,
+    SUMMARIZE_QUESTION_TYPE_SYS_PROMPT,
+    CLASSIFY_QUESTION_TYPE_SYS_PROMPT,
+    GENERATE_ANS_SYS_PROMPT,
+    GENERATE_ANS_SHORT_SYS_PROMPT,
+    GENERATE_LIMIT_NUM_ANS_SYS_PROMPT,
+    CHECK_ANS_STAR_SYS_PROMPT,
+    SELECT_RELEVANT_SENTS_SYS_PROMPT
+)
 import random
 from my_config import OPENAI_API_KEY
 
@@ -20,6 +29,7 @@ def retry_until(f, kargs, p, retry=3):
             if p(r):
                 return r
         except Exception as e:
+            print("Error:", e)
             pass
     print("Failed after retrying")
     return p
@@ -96,7 +106,8 @@ def classify_question_type(q):
             if r < 1 or r > 10:
                 return None
             return r
-        except:
+        except Exception as e:
+            print(e)
             return None
 
     if len(lines) == 0:
@@ -160,7 +171,8 @@ def check_ans_star(p):
             if r < 0 or r > 5:
                 return -1
             return r
-        except:
+        except Exception as e:
+            print("Error:", e)
             return -1
 
     if len(lines) == 0:
@@ -193,7 +205,8 @@ def select_relevant_sents(q, sents):
             if r < 1 or r > len(sents):
                 return -1
             return r
-        except:
+        except Exception as e:
+            print("Error:", e)
             return -1
 
     sent_ids = [try_parse_int(t.strip()) for t in generated.split(",")]
