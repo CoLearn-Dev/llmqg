@@ -45,11 +45,15 @@ def load_trivia_cqas(loc=TRIVIA_DEFAULT_LOC):
 
 
 def dump_trivia_samples(n=NUM_TO_KEEP):
+    if os.path.exists(TRIVIA_SAMPLE_LOC.format(n)):
+        return
     with open(TRIVIA_SAMPLE_LOC.format(n), "wb") as f:
         pickle.dump(random.sample(load_trivia_cqas(), n), f)
 
 
 def load_trivia_samples(n=NUM_TO_KEEP):
+    if not os.path.exists(TRIVIA_SAMPLE_LOC.format(n)):
+        dump_trivia_samples(n)
     with open(TRIVIA_SAMPLE_LOC.format(n), "rb") as f:
         return pickle.load(f)
 
@@ -89,6 +93,8 @@ def load_hotpot_cqas(loc=HOTPOT_DEFAULT_LOC):
 
 
 def dump_hotpot_samples(n=NUM_TO_KEEP):
+    if os.path.exists(HOTPOT_SAMPLE_LOC.format(n)):
+        return
     with open(HOTPOT_SAMPLE_LOC.format(n), "wb") as f:
         pickle.dump(random.sample(load_hotpot_cqas(), n), f)
 

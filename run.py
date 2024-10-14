@@ -162,12 +162,12 @@ class CQA_Inspector:
             ans = gen_then_cache(
                 cqas,
                 llm_utils.generate_ans,
-                data_path.replace("cqas", f"gen_a_wc"),
+                data_path.replace("cqas", "gen_a_wc"),
             )
             star = gen_then_cache(
                 [(x, y) for x, y in zip(cqas, ans)],
                 llm_utils.check_ans_star,
-                data_path.replace("cqas", f"gen_a_wc_star"),
+                data_path.replace("cqas", "gen_a_wc_star"),
             )
             shorter = gen_then_cache(
                 [(x, a, r) for (x, a, r) in zip(cqas, ans, star)],
