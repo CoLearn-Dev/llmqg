@@ -244,12 +244,7 @@ class CQA_Inspector:
             [(x, a, r) for (x, a, r) in zip(cqas, ans, star)],
             packed_detect_ans_len_req,
             gen_path,
-        )  # return (word count, trials)
-        # qtype = gen_then_cache(
-        #     [x[1] for x in cqas],
-        #     llm_utils.classify_question_type,
-        #     data_path.replace("cqas", "qtype"),
-        # )
+        )
 
         print(f"# Minimize answer length - {data_path}")
         df = pd.DataFrame([x for x, _ in shorter])
