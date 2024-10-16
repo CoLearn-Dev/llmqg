@@ -12,7 +12,7 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 class PlotUtils:
     def __init__(self):
         self.inspector = CQA_Inspector()
-        self.datasets = ["trivia", "hotpot", "llmqg"]
+        self.datasets = ["trivia", "hotpot", "llmqg_gpt", "llmqg_llama"]
     
     def plot_stat(self):
         stats_data = {}
@@ -81,23 +81,65 @@ class PlotUtils:
         print(f"Saved plot to {plot_path}")
 
     def plot_answerable(self):
-        answerable_data = defaultdict(dict)
-        for dataset in self.datasets:
-            results = self.inspector.answerable(dataset, use_ctx=True)
-            for label, metrics in results.items():
-                answerable_data[dataset][label] = metrics['percentage']
+        answerable_data_with = defaultdict(dict)
+        answerable_data_without = defaultdict(dict)
+        
+        datasets = {
+            "hotpot": "HotpotQA",
+            "llmqg_llama": "Llama",
+            "llmqg_gpt": "GPT-4o",
+        }
+        
+        for dataset_key, dataset_label in datasets.items():
+            results_with = self.inspector.answerable(dataset_key, use_ctx=True)
+            for label, metrics in results_with.items():
+                answerable_data_with[dataset_label][label] = metrics['percentage']
+            
+            results_without = self.inspector.answerable(dataset_key, use_ctx=False)
+            for label, metrics in results_without.items():
+                answerable_data_without[dataset_label][label] = metrics['percentage']
+        
+        df_with = pd.DataFrame(answerable_data_with).transpose()
+        df_without = pd.DataFrame(answerable_data_without).transpose()
 
-        answerable_df = pd.DataFrame(answerable_data).transpose()
-        answerable_df.plot(kind='bar', stacked=True, figsize=(10, 7))
-        plt.title('Answerable Distribution')
-        plt.xlabel('Dataset')
-        plt.ylabel('Percentage')
-        plt.xticks(rotation=0)
-        plt.legend(title='Answerable Tags', bbox_to_anchor=(1.05, 1), loc='upper left')
+        df_with = df_with[df_with.columns[::-1]]
+        df_without = df_without[df_without.columns[::-1]]
+        
+        color_palette = ['#003262', '#3B7EA1', '#00B0DA', '#CFDD45', '#FDB515', '#C4820E']
+        plt.rcParams.update({
+            'font.size': 45,
+        })
+        
+        fig, axes = plt.subplots(1, 2, figsize=(24, 10), sharey=True)
+
+        # With Context
+        df_with.plot(
+            kind='bar',
+            stacked=True,
+            ax=axes[0],
+            color=color_palette[:df_with.shape[1]],
+            edgecolor='white'
+        )
+        axes[0].set_title('With Context')
+        legend = axes[0].legend(title='Ratings', bbox_to_anchor=(1.05, 1), loc='upper left', reverse=True)
+        legend.remove()
+        axes[0].tick_params(axis='x', rotation=0)
+        
+        # Without Context
+        df_without.plot(
+            kind='bar',
+            stacked=True,
+            ax=axes[1],
+            color=color_palette[:df_without.shape[1]],
+            edgecolor='white'
+        )
+        axes[1].set_title('Without Context')
+        axes[1].legend(title='Ratings', bbox_to_anchor=(1.05, 1), loc='upper left', reverse=True)
+        axes[1].tick_params(axis='x', rotation=0)
+        
         plt.tight_layout()
-
         plot_path = os.path.join(PLOT_DIR, "answerable_distribution.png")
-        plt.savefig(plot_path)
+        plt.savefig(plot_path, bbox_inches='tight')
         plt.close()
         print(f"Saved plot to {plot_path}")
 

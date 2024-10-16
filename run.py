@@ -41,7 +41,7 @@ def gen_then_cache(src, f, cache_loc):
     if os.path.exists(cache_loc):
         with open(cache_loc, "rb") as f:
             return pickle.load(f)
-    ret = process_map(f, src, max_workers=32)
+    ret = process_map(f, src, max_workers=32, chunksize=64)
     with open(cache_loc, "wb") as f:
         pickle.dump(ret, f)
     return ret
@@ -193,8 +193,10 @@ class CQA_Inspector:
         cnt = Counter([x[0] if x[0] is not None else -1 for x in star])
         results = {}
         for k, v in sorted(cnt.items(), reverse=True):
+            if k == -1:
+                continue
             percentage = v / len(star)
-            label = f"{k}" if k != -1 else "Undefined"
+            label = f"{k}"
             print(f"{label}: {v} ({percentage:.1%})")
             results[label] = {"count": v, "percentage": percentage}
         return results
@@ -313,41 +315,49 @@ class CQA_Inspector:
         print(f"# Coverage - {data_path}")
         with open(data_path, "rb") as f:
             cqas = pickle.load(f)
-
+        
         if gen_path is None:
             gen_path = data_path.replace("cqas", "cov")
-
+        
         cov = gen_then_cache(
             cqas,
             detect_coverage,
             gen_path,
         )
         print("## word level")
-        df_word_level = pd.DataFrame([x for x, _, _ in cov])
-        print(df_word_level.describe())
-        word_level_stats = df_word_level.describe().to_dict()
-
+        df = pd.DataFrame([x for x, _, _ in cov])
+        print(df.describe())
         print("## word cnt")
-        df_word_cnt = pd.DataFrame([x['total'] for _, _, x in cov])
-        print(df_word_cnt.describe())
-        word_cnt_stats = df_word_cnt.describe().to_dict()
+        df = pd.DataFrame([x['total'] for _, _, x in cov])
+        print(df.describe())
 
         print("## sent level")
-        df_sent_level = pd.DataFrame([x for _, x, _ in cov])
-        print(df_sent_level.describe())
-        sent_level_stats = df_sent_level.describe().to_dict()
-
+        df = pd.DataFrame([x for _, x, _ in cov])
+        print(df.describe())
         print("## sent cnt")
-        df_sent_cnt = pd.DataFrame([len(x['sents']) for _, _, x in cov])
-        print(df_sent_cnt.describe())
-        sent_cnt_stats = df_sent_cnt.describe().to_dict()
+        df = pd.DataFrame([len(x['sents']) for _, _, x in cov])
+        print(df.describe())
 
-        return {
-            "word_level_stats": word_level_stats,
-            "word_cnt_stats": word_cnt_stats,
-            "sent_level_stats": sent_level_stats,
-            "sent_cnt_stats": sent_cnt_stats,
-        }
+        print("## coverage")
+        buckets = [(x/10, x/10+0.1) for x in range(0, 10)]
+        bucket_cnt = [0] * 10
+        for _, _, r in cov:
+            cov_set = r['coverage']
+            total = len(r['sents'])
+            cur_bucket_cnt = [0] * 10
+            for ind in cov_set:
+                ll, rr = ind/total, (ind+1)/total
+                for i, (lll, rrr) in enumerate(buckets):
+                    # judge if two ranges have intersection
+                    if max(ll, lll) < min(rr, rrr):
+                        cur_bucket_cnt[i] = 1
+            for i, (lll, rrr) in enumerate(buckets):
+                bucket_cnt[i] += cur_bucket_cnt[i]
+            # print(cov_set, total, cur_bucket_cnt)
+            # input()
+        bucket_freq = [x/len(cov) for x in bucket_cnt]
+        for i, (ll, rr) in enumerate(buckets):
+            print(f"{ll:.1f}-{rr:.1f}: {bucket_cnt[i]} ({bucket_freq[i]:.1%})")
 
 
 if __name__ == "__main__":
