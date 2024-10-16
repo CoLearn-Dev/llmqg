@@ -358,7 +358,10 @@ class CQA_Inspector:
         bucket_freq = [x/len(cov) for x in bucket_cnt]
         for i, (ll, rr) in enumerate(buckets):
             print(f"{ll:.1f}-{rr:.1f}: {bucket_cnt[i]} ({bucket_freq[i]:.1%})")
-
+        return {
+            "buckets": buckets,
+            "bucket_freq": bucket_freq,
+        }
 
 if __name__ == "__main__":
     fire.Fire(CQA_Inspector)

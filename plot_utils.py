@@ -1,6 +1,7 @@
 import os
 import fire
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import seaborn as sns
 import pandas as pd
 from collections import defaultdict
@@ -193,35 +194,34 @@ class PlotUtils:
 
     def plot_cover(self):
         cover_data = {}
-        for dataset in self.datasets:
+        datasets = ["hotpot", "llmqg_llama", "llmqg_gpt"]
+        for dataset in datasets:
             results = self.inspector.cover(dataset)
             cover_data[dataset] = {
-                "word_level_mean": results['word_level_stats']['mean'],
-                "word_cnt_mean": results['word_cnt_stats']['mean'],
-                "sent_level_mean": results['sent_level_stats']['mean'],
-                "sent_cnt_mean": results['sent_cnt_stats']['mean']
+                "buckets": results['buckets'],
+                "bucket_freq": results['bucket_freq'],
             }
-        cover_df = pd.DataFrame(cover_data).transpose()
-        fig, ax = plt.subplots(2, 1, figsize=(12, 12))
 
-        cover_df[['word_level_mean', 'sent_level_mean']].plot(kind='bar', ax=ax[0])
-        ax[0].set_title('Coverage Level Statistics')
-        ax[0].set_xlabel('Dataset')
-        ax[0].set_ylabel('Mean Coverage')
-        ax[0].legend(['Word Level', 'Sentence Level'])
+        example_buckets = cover_data[datasets[0]]['buckets']
+        bucket_labels = [f"{ll:.1f}-{rr:.1f}" for ll, rr in example_buckets]
+        fig, axs = plt.subplots(len(datasets), 1, figsize=(10, 15), sharex=True)
 
-        cover_df[['word_cnt_mean', 'sent_cnt_mean']].plot(kind='bar', ax=ax[1])
-        ax[1].set_title('Coverage Count Statistics')
-        ax[1].set_xlabel('Dataset')
-        ax[1].set_ylabel('Mean Count')
-        ax[1].legend(['Word Count', 'Sentence Count'])
+        if len(datasets) == 1:
+            axs = [axs]
 
+        for ax, dataset in zip(axs, datasets):
+            buckets = cover_data[dataset]['buckets']
+            bucket_freq = cover_data[dataset]['bucket_freq']
+            ax.bar(bucket_labels, bucket_freq, color='skyblue', width=1.0)
+            ax.set_title(f"Coverage Histogram - {dataset}", fontsize=14)
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+            ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+        plt.setp(axs[-1].get_xticklabels(), rotation=45, ha='right')
         plt.tight_layout()
-
-        plot_path = os.path.join(PLOT_DIR, "coverage_statistics.png")
-        plt.savefig(plot_path)
+        plt.savefig(os.path.join(PLOT_DIR, "coverage_histogram.png"))
         plt.close()
-        print(f"Saved plot to {plot_path}")
+
 
     def plot_all(self):
         self.plot_stat()
