@@ -1,4 +1,5 @@
 import pickle
+import random
 import fire
 import my_datasets
 import pandas as pd
@@ -48,6 +49,61 @@ def gen_then_cache(src, f, cache_loc):
 
 
 class CQA_Inspector:
+    def sample(self, data_path, n=4):
+        if data_path in shortcuts:
+            data_path = shortcuts[data_path]
+        print(f"# Sample - {data_path}")
+        with open(data_path, "rb") as f:
+            cqas = pickle.load(f)
+        start = random.randint(0, len(cqas) - n)
+        for cqa in cqas[start : start + n]:
+            print(cqa)
+
+    def search_by_question(self, data_path, question):
+        if data_path in shortcuts:
+            data_path = shortcuts[data_path]
+        print(f"# Search by question - {data_path}")
+        with open(data_path, "rb") as f:
+            cqas = pickle.load(f)
+        for i, cqa in enumerate(cqas):
+            if cqa[1] == question:
+                print(cqa)
+                index = i
+                break
+        else:
+            print("Not found.")
+            return
+        with open(data_path.replace("cqas", "qtype"), "rb") as f:
+            qtype = pickle.load(f)
+        print("Question type:")
+        print(qtype[index])
+        print()
+        with open(data_path.replace("cqas", "gen_a_wc"), "rb") as f:
+            gen_a = pickle.load(f)
+        print("Generated answer with context:")
+        print(gen_a[index])
+        print(len(gen_a[index].split()))
+        print()
+        with open(data_path.replace("cqas", "gen_a_woc"), "rb") as f:
+            gen_a_woc = pickle.load(f)
+        print("Generated answer without context:")
+        print(gen_a_woc[index])
+        print()
+        with open(data_path.replace("cqas", "min_ans_len"), "rb") as f:
+            min_ans_len = pickle.load(f)
+        print("Minimized answer length:")
+        print(min_ans_len[index][1][0][''])
+        print()
+        print()
+        with open(data_path.replace("cqas", "cov"), "rb") as f:
+            cov = pickle.load(f)
+        print("Coverage:")
+        print(cov[index])
+        print(len(cov[index][2]['sents']))
+        print()
+
+                
+
     def stat(self, data_path, group=None):
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
