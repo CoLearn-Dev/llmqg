@@ -199,7 +199,7 @@ class CQA_Inspector:
             results[label] = {"count": v, "percentage": percentage}
         return results
 
-    def len_req(self, data_path, gen_path=None, stat_only=False):
+    def len_req(self, data_path, gen_path=None, stat_only=False, group=None):
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
         with open(data_path, "rb") as f:
@@ -220,6 +220,31 @@ class CQA_Inspector:
                 cqas = [(x[0], x[1], y) for x, y in zip(cqas, ans)]
             print(f"# Answer word cnt stat - {data_path}")
             df = pd.DataFrame([llm_utils.word_cnt(i[2]) for i in cqas])
+
+            if group is not None:
+                if group not in {"A", "B", "C"}:
+                    raise ValueError("Group must be one of 'A', 'B', or 'C'.")
+                output_to = data_path.replace("cqas", "qtype")
+                qs = [x[1] for x in cqas]
+                qtype = gen_then_cache(
+                    qs,
+                    llm_utils.classify_question_type,
+                    output_to,
+                )
+                qtype_df = pd.DataFrame(qtype, columns=["question_type", "question_description"])
+                if len(qtype_df) != len(df):
+                    raise ValueError("Mismatch between number of cqas and qtype entries.")
+                merged_df = pd.concat([df, qtype_df], axis=1)
+                merged_df["group"] = merged_df["question_type"].map(question_types)
+                unknown_count = merged_df["group"].isna().sum()
+                if unknown_count > 0:
+                    print(f"# Warning: {unknown_count} questions have undefined groups and will be excluded.")
+                    merged_df = merged_df.dropna(subset=["group"])
+                filtered_df = merged_df[merged_df["group"] == group]
+                print("# Filtered Sample num:", len(filtered_df))
+                print("# Group Ratio:", len(filtered_df) / len(merged_df))
+                df = filtered_df
+
             stats = df.describe()
             print(stats)
             return {
@@ -248,6 +273,31 @@ class CQA_Inspector:
 
         print(f"# Minimize answer length - {data_path}")
         df = pd.DataFrame([x for x, _ in shorter])
+
+        if group is not None:
+            if group not in {"A", "B", "C"}:
+                raise ValueError("Group must be one of 'A', 'B', or 'C'.")
+            output_to = data_path.replace("cqas", "qtype")
+            qs = [x[1] for x in cqas]
+            qtype = gen_then_cache(
+                qs,
+                llm_utils.classify_question_type,
+                output_to,
+            )
+            qtype_df = pd.DataFrame(qtype, columns=["question_type", "question_description"])
+            if len(qtype_df) != len(df):
+                raise ValueError("Mismatch between number of cqas and qtype entries.")
+            merged_df = pd.concat([df, qtype_df], axis=1)
+            merged_df["group"] = merged_df["question_type"].map(question_types)
+            unknown_count = merged_df["group"].isna().sum()
+            if unknown_count > 0:
+                print(f"# Warning: {unknown_count} questions have undefined groups and will be excluded.")
+                merged_df = merged_df.dropna(subset=["group"])
+            filtered_df = merged_df[merged_df["group"] == group]
+            print("# Filtered Sample num:", len(filtered_df))
+            print("# Group Ratio:", len(filtered_df) / len(merged_df))
+            df = filtered_df
+
         print(df.describe())
         print("## Reduction rate:")
         df_reduction = pd.DataFrame([x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)])
