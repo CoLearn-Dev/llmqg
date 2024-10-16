@@ -195,6 +195,11 @@ class PlotUtils:
     def plot_cover(self):
         cover_data = {}
         datasets = ["hotpot", "llmqg_llama", "llmqg_gpt"]
+        dataset_labels = {
+            "hotpot": "HotpotQA",
+            "llmqg_llama": "Llama",
+            "llmqg_gpt": "GPT-4o",
+        }
         for dataset in datasets:
             results = self.inspector.cover(dataset)
             cover_data[dataset] = {
@@ -204,20 +209,25 @@ class PlotUtils:
 
         example_buckets = cover_data[datasets[0]]['buckets']
         bucket_labels = [f"{ll:.1f}-{rr:.1f}" for ll, rr in example_buckets]
-        fig, axs = plt.subplots(len(datasets), 1, figsize=(10, 15), sharex=True)
+        fig, axs = plt.subplots(len(datasets), 1, figsize=(10, 10), sharex=True)
+
+        plt.rcParams.update({
+            'font.size': 20,
+        })
 
         if len(datasets) == 1:
             axs = [axs]
 
         for ax, dataset in zip(axs, datasets):
-            buckets = cover_data[dataset]['buckets']
             bucket_freq = cover_data[dataset]['bucket_freq']
             ax.bar(bucket_labels, bucket_freq, color='skyblue', width=1.0)
-            ax.set_title(f"Coverage Histogram - {dataset}", fontsize=14)
+            ax.set_title(dataset_labels[dataset])
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+            ax.yaxis.set_tick_params(labelsize=17)
+            ax.set_ylim(0, 0.55)
             ax.grid(axis='y', linestyle='--', alpha=0.7)
 
-        plt.setp(axs[-1].get_xticklabels(), rotation=45, ha='right')
+        plt.setp(axs[-1].get_xticklabels(), rotation=45, ha='center', fontsize=17)
         plt.tight_layout()
         plt.savefig(os.path.join(PLOT_DIR, "coverage_histogram.png"))
         plt.close()
