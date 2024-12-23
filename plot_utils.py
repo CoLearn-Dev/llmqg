@@ -125,6 +125,7 @@ class PlotUtils:
         legend = axes[0].legend(title='Ratings', bbox_to_anchor=(1.05, 1), loc='upper left', reverse=True)
         legend.remove()
         axes[0].tick_params(axis='x', rotation=0)
+        axes[0].set_ylim(0, 1.0)
         
         # Without Context
         df_without.plot(
@@ -137,6 +138,7 @@ class PlotUtils:
         axes[1].set_title('Without Context')
         axes[1].legend(title='Ratings', bbox_to_anchor=(1.05, 1), loc='upper left', reverse=True)
         axes[1].tick_params(axis='x', rotation=0)
+        axes[1].set_ylim(0, 1.0)
         
         plt.tight_layout()
         plot_path = os.path.join(PLOT_DIR, "answerable_distribution.png")

@@ -49,6 +49,38 @@ def gen_then_cache(src, f, cache_loc):
 
 
 class CQA_Inspector:
+    def sample_coverage(self, data_path, n=100):
+        if data_path in shortcuts:
+            data_path = shortcuts[data_path]
+        print(f"# Sample coverage - {data_path}")
+        with open(data_path.replace("cqas", "cov"), "rb") as f:
+            cov = pickle.load(f)
+        with open(data_path, "rb") as f:
+            cqas = pickle.load(f)
+        samples = random.sample(range(len(cov)), n)
+        df = pd.DataFrame(cov)
+        expanded_columns = pd.json_normalize(df[2])
+        df = pd.concat([df.drop(columns=[2]), expanded_columns], axis=1)
+        cqas_df = pd.DataFrame(cqas)
+        df = pd.concat([cqas_df, df], axis=1)
+        df = df.iloc[samples]
+        df.to_csv("sample_coverage.csv")
+
+    def sample_type(self, data_path, n=100):
+        if data_path in shortcuts:
+            data_path = shortcuts[data_path]
+        print(f"# Sample type - {data_path}")
+        with open(data_path.replace("cqas", "qtype"), "rb") as f:
+            qtype = pickle.load(f)
+        with open(data_path, "rb") as f:
+            cqas = pickle.load(f)
+        samples = random.sample(range(len(qtype)), n)
+        df = pd.DataFrame(qtype)
+        cqas_df = pd.DataFrame(cqas)
+        df = pd.concat([cqas_df, df], axis=1)
+        df = df.iloc[samples]
+        df.to_csv("sample_type.csv")
+
     def sample(self, data_path, n=4):
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
