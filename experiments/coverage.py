@@ -1,5 +1,5 @@
 from nltk.tokenize import sent_tokenize
-import llm_utils
+import utils.llm_utils as llm_utils
 
 def detect_coverage(x, a=None, r=None):
     # Given input CQA, best answer so far, and rating, return an answer with the same rating with minimal coverage.

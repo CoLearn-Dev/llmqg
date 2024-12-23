@@ -1,4 +1,3 @@
-# https://github.com/CoLearn-Dev/fleecekm-dataset-generation/blob/2f3567a3df186473c21a95e36b985bcb331bb4c7/askmevllm/dataset/questions.py#L23
 QUESTION_GENERATION_SYS_PROMPT = """\
 You are to generate {NUM_QUESTIONS} self-contained short answer questions based on the facts mentioned in the following content.
 Avoid questions that reference the content directly.

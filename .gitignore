@@ -169,3 +169,5 @@ deprecated
 evidences
 view.ipynb
 plots
+*.csv
+*.txt

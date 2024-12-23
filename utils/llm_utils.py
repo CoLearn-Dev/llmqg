@@ -1,5 +1,6 @@
 import openai
 import re
+import os
 import random
 from together import Together
 from prompts import (
@@ -12,13 +13,15 @@ from prompts import (
     CHECK_ANS_STAR_SYS_PROMPT,
     SELECT_RELEVANT_SENTS_SYS_PROMPT
 )
-from my_config import OPENAI_API_KEY, TOGETHER_API_KEY
+from dotenv import load_dotenv
+
+load_dotenv()
 
 openai_client = openai.OpenAI(
-    api_key=OPENAI_API_KEY,
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 together_client = Together(
-    api_key=TOGETHER_API_KEY
+    api_key=os.getenv("TOGETHER_API_KEY")
 )
 
 def word_cnt(s):

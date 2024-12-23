@@ -1,4 +1,4 @@
-from llm_utils import check_ans_star, word_cnt, generate_ans
+from utils.llm_utils import check_ans_star, word_cnt, generate_ans
 
 def detect_ans_len_req(x, a, r=None):
     # Given input CQA, best answer so far, and rating, return an answer with the same rating with minimal length.

@@ -1,22 +1,23 @@
+import os
 import pickle
 import random
 import fire
-import my_datasets
+import datasets
 import pandas as pd
-from collections import Counter
-import os
 from tqdm.contrib.concurrent import process_map
-import llm_utils
-import prompts
-from ans_len import packed_detect_ans_len_req
-from coverage import detect_coverage
+from collections import Counter
+
+import utils.llm_utils as llm_utils
+import utils.prompts as prompts
+from experiments.ans_len import packed_detect_ans_len_req
+from experiments.coverage import detect_coverage
 
 shortcuts = {
-    "trivia": my_datasets.TRIVIA_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
-    "hotpot": my_datasets.HOTPOT_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
-    "llmqg": my_datasets.LLMQG_GPT_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
-    "llmqg_gpt": my_datasets.LLMQG_GPT_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
-    "llmqg_llama": my_datasets.LLMQG_LLAMA_SAMPLE_LOC.format(my_datasets.NUM_TO_KEEP),
+    "trivia": datasets.TRIVIA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
+    "hotpot": datasets.HOTPOT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
+    "llmqg": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
+    "llmqg_gpt": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
+    "llmqg_llama": datasets.LLMQG_LLAMA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
 }
 shortcuts["t"] = shortcuts["trivia"]
 shortcuts["h"] = shortcuts["hotpot"]
