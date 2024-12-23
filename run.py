@@ -2,7 +2,7 @@ import os
 import pickle
 import random
 import fire
-import datasets
+import utils.datasets as datasets
 import pandas as pd
 from tqdm.contrib.concurrent import process_map
 from collections import Counter
@@ -35,7 +35,7 @@ question_types = {
     7: "A",
     8: "C",
     9: "B",
-    10: "A"
+    10: "A",
 }
 
 
@@ -125,17 +125,15 @@ class CQA_Inspector:
         with open(data_path.replace("cqas", "min_ans_len"), "rb") as f:
             min_ans_len = pickle.load(f)
         print("Minimized answer length:")
-        print(min_ans_len[index][1][0][''])
+        print(min_ans_len[index][1][0][""])
         print()
         print()
         with open(data_path.replace("cqas", "cov"), "rb") as f:
             cov = pickle.load(f)
         print("Coverage:")
         print(cov[index])
-        print(len(cov[index][2]['sents']))
+        print(len(cov[index][2]["sents"]))
         print()
-
-                
 
     def stat(self, data_path, group=None):
         if data_path in shortcuts:
@@ -159,7 +157,9 @@ class CQA_Inspector:
                 llm_utils.classify_question_type,
                 output_to,
             )
-            qtype_df = pd.DataFrame(qtype, columns=["question_type", "question_description"])
+            qtype_df = pd.DataFrame(
+                qtype, columns=["question_type", "question_description"]
+            )
             cqa_df = pd.DataFrame(cqas, columns=["context", "question", "answer"])
             if len(qtype_df) != len(cqa_df):
                 raise ValueError("Mismatch between number of cqas and qtype entries.")
@@ -167,7 +167,9 @@ class CQA_Inspector:
             merged_df["group"] = merged_df["question_type"].map(question_types)
             unknown_count = merged_df["group"].isna().sum()
             if unknown_count > 0:
-                print(f"# Warning: {unknown_count} questions have undefined groups and will be excluded.")
+                print(
+                    f"# Warning: {unknown_count} questions have undefined groups and will be excluded."
+                )
                 merged_df = merged_df.dropna(subset=["group"])
             if group is not None:
                 if group not in {"A", "B", "C"}:
@@ -245,12 +247,20 @@ class CQA_Inspector:
             percentage = count / len(qs)
             description = qts[i - 1]
             print(f"Type {i}: {count} ({percentage:.1%}) | {description}")
-            results[f"Type {i}"] = {"count": count, "percentage": percentage, "description": description}
+            results[f"Type {i}"] = {
+                "count": count,
+                "percentage": percentage,
+                "description": description,
+            }
             so_far += count
         others_count = len(qs) - so_far
         others_percentage = others_count / len(qs)
         print(f"Others: {others_count} ({others_percentage:.1%}) | Others")
-        results["Others"] = {"count": others_count, "percentage": others_percentage, "description": "Others"}
+        results["Others"] = {
+            "count": others_count,
+            "percentage": others_percentage,
+            "description": "Others",
+        }
         return results
 
     def answerable(self, data_path, gen_ans=None, judge_ans=None, use_ctx=True):
@@ -322,14 +332,20 @@ class CQA_Inspector:
                     llm_utils.classify_question_type,
                     output_to,
                 )
-                qtype_df = pd.DataFrame(qtype, columns=["question_type", "question_description"])
+                qtype_df = pd.DataFrame(
+                    qtype, columns=["question_type", "question_description"]
+                )
                 if len(qtype_df) != len(df):
-                    raise ValueError("Mismatch between number of cqas and qtype entries.")
+                    raise ValueError(
+                        "Mismatch between number of cqas and qtype entries."
+                    )
                 merged_df = pd.concat([df, qtype_df], axis=1)
                 merged_df["group"] = merged_df["question_type"].map(question_types)
                 unknown_count = merged_df["group"].isna().sum()
                 if unknown_count > 0:
-                    print(f"# Warning: {unknown_count} questions have undefined groups and will be excluded.")
+                    print(
+                        f"# Warning: {unknown_count} questions have undefined groups and will be excluded."
+                    )
                     merged_df = merged_df.dropna(subset=["group"])
                 filtered_df = merged_df[merged_df["group"] == group]
                 print("# Filtered Sample num:", len(filtered_df))
@@ -375,14 +391,18 @@ class CQA_Inspector:
                 llm_utils.classify_question_type,
                 output_to,
             )
-            qtype_df = pd.DataFrame(qtype, columns=["question_type", "question_description"])
+            qtype_df = pd.DataFrame(
+                qtype, columns=["question_type", "question_description"]
+            )
             if len(qtype_df) != len(df):
                 raise ValueError("Mismatch between number of cqas and qtype entries.")
             merged_df = pd.concat([df, qtype_df], axis=1)
             merged_df["group"] = merged_df["question_type"].map(question_types)
             unknown_count = merged_df["group"].isna().sum()
             if unknown_count > 0:
-                print(f"# Warning: {unknown_count} questions have undefined groups and will be excluded.")
+                print(
+                    f"# Warning: {unknown_count} questions have undefined groups and will be excluded."
+                )
                 merged_df = merged_df.dropna(subset=["group"])
             filtered_df = merged_df[merged_df["group"] == group]
             print("# Filtered Sample num:", len(filtered_df))
@@ -391,7 +411,9 @@ class CQA_Inspector:
 
         print(df.describe())
         print("## Reduction rate:")
-        df_reduction = pd.DataFrame([x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)])
+        df_reduction = pd.DataFrame(
+            [x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)]
+        )
         print(df_reduction.describe())
         return {
             "minimize_answer_length_stats": df.describe()[0].to_dict(),
@@ -404,10 +426,10 @@ class CQA_Inspector:
         print(f"# Coverage - {data_path}")
         with open(data_path, "rb") as f:
             cqas = pickle.load(f)
-        
+
         if gen_path is None:
             gen_path = data_path.replace("cqas", "cov")
-        
+
         cov = gen_then_cache(
             cqas,
             detect_coverage,
@@ -417,25 +439,25 @@ class CQA_Inspector:
         df = pd.DataFrame([x for x, _, _ in cov])
         print(df.describe())
         print("## word cnt")
-        df = pd.DataFrame([x['total'] for _, _, x in cov])
+        df = pd.DataFrame([x["total"] for _, _, x in cov])
         print(df.describe())
 
         print("## sent level")
         df = pd.DataFrame([x for _, x, _ in cov])
         print(df.describe())
         print("## sent cnt")
-        df = pd.DataFrame([len(x['sents']) for _, _, x in cov])
+        df = pd.DataFrame([len(x["sents"]) for _, _, x in cov])
         print(df.describe())
 
         print("## coverage")
-        buckets = [(x/10, x/10+0.1) for x in range(0, 10)]
+        buckets = [(x / 10, x / 10 + 0.1) for x in range(0, 10)]
         bucket_cnt = [0] * 10
         for _, _, r in cov:
-            cov_set = r['coverage']
-            total = len(r['sents'])
+            cov_set = r["coverage"]
+            total = len(r["sents"])
             cur_bucket_cnt = [0] * 10
             for ind in cov_set:
-                ll, rr = ind/total, (ind+1)/total
+                ll, rr = ind / total, (ind + 1) / total
                 for i, (lll, rrr) in enumerate(buckets):
                     # judge if two ranges have intersection
                     if max(ll, lll) < min(rr, rrr):
@@ -444,13 +466,14 @@ class CQA_Inspector:
                 bucket_cnt[i] += cur_bucket_cnt[i]
             # print(cov_set, total, cur_bucket_cnt)
             # input()
-        bucket_freq = [x/len(cov) for x in bucket_cnt]
+        bucket_freq = [x / len(cov) for x in bucket_cnt]
         for i, (ll, rr) in enumerate(buckets):
             print(f"{ll:.1f}-{rr:.1f}: {bucket_cnt[i]} ({bucket_freq[i]:.1%})")
         return {
             "buckets": buckets,
             "bucket_freq": bucket_freq,
         }
+
 
 if __name__ == "__main__":
     fire.Fire(CQA_Inspector)

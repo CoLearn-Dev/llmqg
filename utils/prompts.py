@@ -57,13 +57,19 @@ The rating from 0 to 5.
 A brief justification for your rating.
 """
 
-GENERATE_ANS_SHORT_SYS_PROMPT = GENERATE_ANS_SYS_PROMPT + """\
+GENERATE_ANS_SHORT_SYS_PROMPT = (
+    GENERATE_ANS_SYS_PROMPT
+    + """\
 Provide a very concise answer without repeating the question.
 """
+)
 
-GENERATE_LIMIT_NUM_ANS_SYS_PROMPT = GENERATE_ANS_SYS_PROMPT + """\
+GENERATE_LIMIT_NUM_ANS_SYS_PROMPT = (
+    GENERATE_ANS_SYS_PROMPT
+    + """\
 Please ensure that your answer contains no more than {} words.
 """
+)
 
 SELECT_RELEVANT_SENTS_SYS_PROMPT = """\
 Select the minimal set of context sentences most relevant to answering the question. 

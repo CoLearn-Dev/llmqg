@@ -11,21 +11,19 @@ from prompts import (
     GENERATE_ANS_SHORT_SYS_PROMPT,
     GENERATE_LIMIT_NUM_ANS_SYS_PROMPT,
     CHECK_ANS_STAR_SYS_PROMPT,
-    SELECT_RELEVANT_SENTS_SYS_PROMPT
+    SELECT_RELEVANT_SENTS_SYS_PROMPT,
 )
 from dotenv import load_dotenv
 
 load_dotenv()
 
-openai_client = openai.OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
-together_client = Together(
-    api_key=os.getenv("TOGETHER_API_KEY")
-)
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+
 
 def word_cnt(s):
     return len([x.strip() for x in s.split() if len(x.strip()) > 1])
+
 
 def retry_until(f, kargs, p, retry=3):
     for i in range(retry):
@@ -39,6 +37,7 @@ def retry_until(f, kargs, p, retry=3):
     print("Failed after retrying")
     return p
 
+
 def get_completion(model, messages, **kwargs):
     if model.startswith("gpt-"):
         try:
@@ -46,7 +45,7 @@ def get_completion(model, messages, **kwargs):
                 model=model,
                 messages=messages,
                 temperature=kwargs.get("temperature", 0),
-                **kwargs
+                **kwargs,
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
@@ -58,12 +57,13 @@ def get_completion(model, messages, **kwargs):
                 model=model,
                 messages=messages,
                 temperature=kwargs.get("temperature", 0),
-                **kwargs
+                **kwargs,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
             print(f"Together AI completion error: {e}")
             raise
+
 
 def generate_wiki_question(ctx, num_questions=1, model="gpt-4o"):
     completion_text = get_completion(
@@ -93,6 +93,7 @@ def generate_wiki_question(ctx, num_questions=1, model="gpt-4o"):
         print("Warning: Not enough questions generated. ctx:", ctx)
         return new_questions
 
+
 def summarize_question_types(qs, model="gpt-4o"):
     completion_text = get_completion(
         model=model,
@@ -104,12 +105,16 @@ def summarize_question_types(qs, model="gpt-4o"):
             {
                 "role": "user",
                 "content": "\n".join(
-                    [f"{i+1}. {q}" for i, q in enumerate(random.sample(qs, min(len(qs), 128)))]
+                    [
+                        f"{i+1}. {q}"
+                        for i, q in enumerate(random.sample(qs, min(len(qs), 128)))
+                    ]
                 ),
             },
         ],
     )
     print(completion_text)
+
 
 def classify_question_type(q, model="gpt-4o"):
     completion_text = get_completion(
@@ -144,6 +149,7 @@ def classify_question_type(q, model="gpt-4o"):
         return try_parse_int(lines[0].strip()), None
     return try_parse_int(lines[0].strip()), lines[1].strip()
 
+
 def generate_ans(x, enforce_short=None, model="gpt-4o"):
     (c, q, _a) = x
     system_prompt = (
@@ -173,6 +179,7 @@ def generate_ans(x, enforce_short=None, model="gpt-4o"):
     )
     a = completion_text.strip()
     return a
+
 
 def check_ans_star(p, model="gpt-4o"):
     (c, q, a), aa = p
@@ -210,6 +217,7 @@ def check_ans_star(p, model="gpt-4o"):
         return try_parse_int(lines[0].strip()), ""
     return try_parse_int(lines[0].strip()), lines[1].strip()
 
+
 def select_relevant_sents(q, sents, model="gpt-4o"):
     sent_list = "\n".join([f"{i+1}. {s}" for i, s in enumerate(sents)])
     completion_text = get_completion(
@@ -241,6 +249,7 @@ def select_relevant_sents(q, sents, model="gpt-4o"):
     sent_ids = set([x - 1 for x in sent_ids if x != -1])  # filter out -1
     return sent_ids
 
+
 if __name__ == "__main__":
     print(
         generate_wiki_question(
@@ -250,6 +259,6 @@ if __name__ == "__main__":
     print(
         generate_wiki_question(
             "In an article about 'Trans @-@ Alaska Pipeline System', section 'Additional sources', it mentioned: Fineberg , Richard A. A Pipeline in Peril : A Status Report on the Trans-Alaska Pipeline . Ester , Alaska ; Alaska Forum for Environmental Responsibility , 1996 .",
-            model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         )
     )

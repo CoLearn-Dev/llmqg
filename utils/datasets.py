@@ -152,7 +152,9 @@ def generate_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL):
     ]  # filter out short wiki that does not have sufficient information for generation
     wiki_df = wiki_df[wiki_df.is_bad == 0]  # filter out bad wiki
     assert len(wiki_df) >= n / qa_per_ctx
-    wiki_df = wiki_df.sample(n // qa_per_ctx, random_state=SAMPLE_RANDOM_STATE) # for the same choice between models
+    wiki_df = wiki_df.sample(
+        n // qa_per_ctx, random_state=SAMPLE_RANDOM_STATE
+    )  # for the same choice between models
     cs = []
     for x in wiki_df.values:
         cs.append((wiki_to_ctx(x), qa_per_ctx, model))
@@ -164,6 +166,7 @@ def generate_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL):
     )
     return sum(cqs, [])
 
+
 def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4):
     if not os.path.exists(LLMQG_GPT_SAMPLE_LOC.format(n)):
         print(f"Generating and dumping GPT samples with n={n}, qa_per_ctx={qa_per_ctx}")
@@ -172,7 +175,9 @@ def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4):
     else:
         print(f"Sample file already exists: {LLMQG_GPT_SAMPLE_LOC.format(n)}")
     if not os.path.exists(LLMQG_LLAMA_SAMPLE_LOC.format(n)):
-        print(f"Generating and dumping LLAMA samples with n={n}, qa_per_ctx={qa_per_ctx}")
+        print(
+            f"Generating and dumping LLAMA samples with n={n}, qa_per_ctx={qa_per_ctx}"
+        )
         with open(LLMQG_LLAMA_SAMPLE_LOC.format(n), "wb") as f:
             pickle.dump(generate_llmqg_samples(n, qa_per_ctx, model=LLAMA_MODEL), f)
     else:

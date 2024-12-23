@@ -1,6 +1,7 @@
 from nltk.tokenize import sent_tokenize
 import utils.llm_utils as llm_utils
 
+
 def detect_coverage(x, a=None, r=None):
     # Given input CQA, best answer so far, and rating, return an answer with the same rating with minimal coverage.
     # now only c and q are needed
@@ -19,6 +20,7 @@ def detect_coverage(x, a=None, r=None):
     records = {"sents": sents, "coverage": coverage, "total": total}
     return covered / total, len(coverage) / len(sents), records
 
+
 if __name__ == "__main__":
     c = """\
 In an article about 'Royton', section 'Overview', subsection 'nan', paragraph 'nan', it mentioned: 
@@ -27,7 +29,8 @@ Royton ( pop . 21,284 ( 2011 ) ) is a town within the Metropolitan Borough of Ol
     q = """\
 What is the population of Royton as recorded in 2011 and how is it geographically situated within Greater Manchester, England?
 """
-    from pprint import pprint 
+    from pprint import pprint
+
     ratio, records = detect_coverage((c, q, None))
     print(ratio)
     print("Coverage:", records["coverage"])
