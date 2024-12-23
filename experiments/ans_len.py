@@ -1,4 +1,5 @@
-from llm_utils import check_ans_star, word_cnt, generate_ans
+from utils.llm_utils import check_ans_star, word_cnt, generate_ans
+
 
 def detect_ans_len_req(x, a, r=None):
     # Given input CQA, best answer so far, and rating, return an answer with the same rating with minimal length.
@@ -12,7 +13,7 @@ def detect_ans_len_req(x, a, r=None):
             aa = trial["aa"] = generate_ans(x, enforce_short=l)
             wc = trial["wc"] = word_cnt(aa)
             if wc < current:
-                rr = trial['rr'] = check_ans_star((x, aa))
+                rr = trial["rr"] = check_ans_star((x, aa))
                 trials.append(trial)
                 if rr >= r:
                     current = wc
@@ -23,6 +24,7 @@ def detect_ans_len_req(x, a, r=None):
 
 def packed_detect_ans_len_req(p):
     return detect_ans_len_req(*p)
+
 
 if __name__ == "__main__":
     c = """\
@@ -36,4 +38,5 @@ What is the population of Royton as recorded in 2011 and how is it geographicall
 In 2011, the population of Royton was 21,284. Geographically, it is located within the Metropolitan Borough of Oldham in Greater Manchester, England, and is situated near the source of the River Irk, at the foothills of the South Pennines. It lies 1.7 miles north-northwest of Oldham, 3.2 miles south-southeast of Rochdale, and 7.6 miles northeast of the city of Manchester.
 """
     from pprint import pprint
+
     pprint(detect_ans_len_req((c, q, None), aa))

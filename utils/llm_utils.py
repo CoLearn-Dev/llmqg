@@ -1,12 +1,24 @@
 import openai
 import re
-from prompts import *
+import os
 import random
-from my_config import OPENAI_API_KEY
-
-client = openai.OpenAI(
-    api_key=OPENAI_API_KEY,
+from together import Together
+from prompts import (
+    QUESTION_GENERATION_SYS_PROMPT,
+    SUMMARIZE_QUESTION_TYPE_SYS_PROMPT,
+    CLASSIFY_QUESTION_TYPE_SYS_PROMPT,
+    GENERATE_ANS_SYS_PROMPT,
+    GENERATE_ANS_SHORT_SYS_PROMPT,
+    GENERATE_LIMIT_NUM_ANS_SYS_PROMPT,
+    CHECK_ANS_STAR_SYS_PROMPT,
+    SELECT_RELEVANT_SENTS_SYS_PROMPT,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
+
+openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 
 def word_cnt(s):
@@ -20,14 +32,42 @@ def retry_until(f, kargs, p, retry=3):
             if p(r):
                 return r
         except Exception as e:
+            print("Error:", e)
             pass
     print("Failed after retrying")
     return p
 
 
-def generate_wiki_question(ctx, num_questions=1):
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+def get_completion(model, messages, **kwargs):
+    if model.startswith("gpt-"):
+        try:
+            completion = openai_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=kwargs.get("temperature", 0),
+                **kwargs,
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"OpenAI completion error: {e}")
+            raise
+    else:
+        try:
+            response = together_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=kwargs.get("temperature", 0),
+                **kwargs,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"Together AI completion error: {e}")
+            raise
+
+
+def generate_wiki_question(ctx, num_questions=1, model="gpt-4o"):
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -41,7 +81,7 @@ def generate_wiki_question(ctx, num_questions=1):
             },
         ],
     )
-    generated_text = completion.choices[0].message.content.strip()
+    generated_text = completion_text.strip()
     new_questions = [
         re.sub(r"^\d\.", "", x).strip()
         for x in generated_text.split("\n")
@@ -54,9 +94,9 @@ def generate_wiki_question(ctx, num_questions=1):
         return new_questions
 
 
-def summarize_question_types(qs):
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+def summarize_question_types(qs, model="gpt-4o"):
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -65,17 +105,20 @@ def summarize_question_types(qs):
             {
                 "role": "user",
                 "content": "\n".join(
-                    [f"{i+1}. {q}" for i, q in enumerate(random.sample(qs, 128))]
+                    [
+                        f"{i+1}. {q}"
+                        for i, q in enumerate(random.sample(qs, min(len(qs), 128)))
+                    ]
                 ),
             },
         ],
     )
-    print(completion.choices[0].message.content)
+    print(completion_text)
 
 
-def classify_question_type(q):
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+def classify_question_type(q, model="gpt-4o"):
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -87,7 +130,7 @@ def classify_question_type(q):
             },
         ],
     )
-    generated = completion.choices[0].message.content
+    generated = completion_text
     lines = generated.strip().split("\n")
 
     def try_parse_int(x):
@@ -96,7 +139,8 @@ def classify_question_type(q):
             if r < 1 or r > 10:
                 return None
             return r
-        except:
+        except Exception as e:
+            print(e)
             return None
 
     if len(lines) == 0:
@@ -106,38 +150,41 @@ def classify_question_type(q):
     return try_parse_int(lines[0].strip()), lines[1].strip()
 
 
-def generate_ans(x, enforce_short=None):
+def generate_ans(x, enforce_short=None, model="gpt-4o"):
     (c, q, _a) = x
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+    system_prompt = (
+        GENERATE_ANS_SYS_PROMPT
+        if enforce_short is None
+        else (
+            GENERATE_ANS_SHORT_SYS_PROMPT
+            if enforce_short == 0
+            else GENERATE_LIMIT_NUM_ANS_SYS_PROMPT.format(enforce_short)
+        )
+    )
+    user_content = f"Question:\n{q}"
+    if c:
+        user_content += f"\nSupporting fact:\n{c}"
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
-                "content": (
-                    GENERATE_ANS_SYS_PROMPT
-                    if enforce_short is None
-                    else (
-                        GENERATE_ANS_SHORT_SYS_PROMPT
-                        if enforce_short == 0
-                        else GENERATE_LIMIT_NUM_ANS_SYS_PROMPT.format(enforce_short)
-                    )
-                ),
+                "content": system_prompt,
             },
             {
                 "role": "user",
-                "content": f"Question:\n{q}"
-                + (f"\nSupporting fact:\n{c}" if c else ""),
+                "content": user_content,
             },
         ],
     )
-    a = completion.choices[0].message.content.strip()
+    a = completion_text.strip()
     return a
 
 
-def check_ans_star(p):
+def check_ans_star(p, model="gpt-4o"):
     (c, q, a), aa = p
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -151,7 +198,7 @@ def check_ans_star(p):
             },
         ],
     )
-    generated = completion.choices[0].message.content
+    generated = completion_text
     lines = generated.strip().split("\n")
 
     def try_parse_int(x):
@@ -160,7 +207,8 @@ def check_ans_star(p):
             if r < 0 or r > 5:
                 return -1
             return r
-        except:
+        except Exception as e:
+            print("Error:", e)
             return -1
 
     if len(lines) == 0:
@@ -170,10 +218,10 @@ def check_ans_star(p):
     return try_parse_int(lines[0].strip()), lines[1].strip()
 
 
-def select_relevant_sents(q, sents):
+def select_relevant_sents(q, sents, model="gpt-4o"):
     sent_list = "\n".join([f"{i+1}. {s}" for i, s in enumerate(sents)])
-    completion = client.chat.completions.create(
-        model="gpt-4o",
+    completion_text = get_completion(
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -185,7 +233,7 @@ def select_relevant_sents(q, sents):
             },
         ],
     )
-    generated = completion.choices[0].message.content
+    generated = completion_text
 
     def try_parse_int(x):
         try:
@@ -193,12 +241,12 @@ def select_relevant_sents(q, sents):
             if r < 1 or r > len(sents):
                 return -1
             return r
-        except:
+        except Exception as e:
+            print("Error:", e)
             return -1
 
     sent_ids = [try_parse_int(t.strip()) for t in generated.split(",")]
     sent_ids = set([x - 1 for x in sent_ids if x != -1])  # filter out -1
-    # print(generated, sent_ids)
     return sent_ids
 
 
@@ -206,5 +254,11 @@ if __name__ == "__main__":
     print(
         generate_wiki_question(
             "In an article about 'Trans @-@ Alaska Pipeline System', section 'Additional sources', it mentioned: Fineberg , Richard A. A Pipeline in Peril : A Status Report on the Trans-Alaska Pipeline . Ester , Alaska ; Alaska Forum for Environmental Responsibility , 1996 ."
+        )
+    )
+    print(
+        generate_wiki_question(
+            "In an article about 'Trans @-@ Alaska Pipeline System', section 'Additional sources', it mentioned: Fineberg , Richard A. A Pipeline in Peril : A Status Report on the Trans-Alaska Pipeline . Ester , Alaska ; Alaska Forum for Environmental Responsibility , 1996 .",
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         )
     )
