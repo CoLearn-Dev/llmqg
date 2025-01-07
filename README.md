@@ -45,3 +45,16 @@ The `data` directory contains various datasets used for training and evaluating 
 * **hotpot:** Datasets related to the HotpotQA project.
 * **llmqg_gpt & llmqg_llama:** Our QA dataset generated using WikiText and different LLMs.
 * **trivia:** Trivia QA datasets, both filtered and unfiltered.
+
+### Downloading Datasets
+Use the following command to download the datasets:
+
+```bash
+bash download_data.sh
+```
+
+To generate our QA dataset, use the following command:
+
+```bash
+python utils/datasets.py
+```
