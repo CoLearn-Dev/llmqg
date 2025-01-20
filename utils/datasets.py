@@ -3,7 +3,7 @@ import os
 import pickle
 import pandas as pd
 from typing import Tuple, Optional
-from llm_utils import generate_wiki_question, retry_until
+from .llm_utils import generate_wiki_question, retry_until
 from tqdm.contrib.concurrent import process_map
 import random
 

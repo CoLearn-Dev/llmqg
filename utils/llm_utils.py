@@ -3,7 +3,7 @@ import re
 import os
 import random
 from together import Together
-from prompts import (
+from .prompts import (
     QUESTION_GENERATION_SYS_PROMPT,
     SUMMARIZE_QUESTION_TYPE_SYS_PROMPT,
     CLASSIFY_QUESTION_TYPE_SYS_PROMPT,
