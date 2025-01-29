@@ -2,7 +2,7 @@ import os
 import pickle
 import random
 import fire
-import utils.datasets as datasets
+import datasets
 import pandas as pd
 from tqdm.contrib.concurrent import process_map
 from collections import Counter
@@ -15,15 +15,24 @@ from experiments.coverage import detect_coverage
 shortcuts = {
     "trivia": datasets.TRIVIA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
     "hotpot": datasets.HOTPOT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg_gpt": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg_llama": datasets.LLMQG_LLAMA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
 }
+
+llm_names = ["gpt", "llama"]
+versions = ["original", "mininmal", "original_v", "minimal_v"]
+
+for llm_name in llm_names:
+    for version in versions:
+        key = f"llmqg_{llm_name}_{version}"
+        shortcuts[key] = datasets.get_llmqg_sample_loc(
+            llm_name, version, datasets.NUM_TO_KEEP
+        )
+
+# Add shorthand aliases
 shortcuts["t"] = shortcuts["trivia"]
 shortcuts["h"] = shortcuts["hotpot"]
-shortcuts["l"] = shortcuts["llmqg"]
-shortcuts["lg"] = shortcuts["llmqg_gpt"]
-shortcuts["ll"] = shortcuts["llmqg_llama"]
+shortcuts["l"] = shortcuts.get("llmqg_gpt_original")
+shortcuts["lg"] = shortcuts.get("llmqg_gpt_original")
+shortcuts["ll"] = shortcuts.get("llmqg_llama_original")
 
 question_types = {
     1: "B",

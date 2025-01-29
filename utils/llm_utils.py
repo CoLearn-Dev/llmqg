@@ -4,7 +4,10 @@ import os
 import random
 from together import Together
 from .prompts import (
-    QUESTION_GENERATION_SYS_PROMPT,
+    QUESTION_GENERATION_SYS_PROMPT_ORIGINAL,
+    QUESTION_GENERATION_SYS_PROMPT_MINIMAL,
+    QUESTION_GENERATION_SYS_PROMPT_ORIGINAL_VARIATION,
+    QUESTION_GENERATION_SYS_PROMPT_MINIMAL_VARIATION,
     SUMMARIZE_QUESTION_TYPE_SYS_PROMPT,
     CLASSIFY_QUESTION_TYPE_SYS_PROMPT,
     GENERATE_ANS_SYS_PROMPT,
@@ -65,15 +68,26 @@ def get_completion(model, messages, **kwargs):
             raise
 
 
-def generate_wiki_question(ctx, num_questions=1, model="gpt-4o"):
+def generate_wiki_question(
+    ctx, num_questions=1, model="gpt-4o", prompt_version="original"
+):
+    if prompt_version == "original":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_ORIGINAL
+    elif prompt_version == "minimal":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_MINIMAL
+    elif prompt_version == "original_v":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_ORIGINAL_VARIATION
+    elif prompt_version == "minimal_v":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_MINIMAL_VARIATION
+    else:
+        raise ValueError(f"Unknown prompt_version: {prompt_version}")
+
     completion_text = get_completion(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": QUESTION_GENERATION_SYS_PROMPT.format(
-                    NUM_QUESTIONS=num_questions
-                ),
+                "content": sys_prompt.format(NUM_QUESTIONS=num_questions),
             },
             {
                 "role": "user",

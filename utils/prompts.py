@@ -1,9 +1,32 @@
-QUESTION_GENERATION_SYS_PROMPT = """\
+QUESTION_GENERATION_SYS_PROMPT_ORIGINAL = """\
 You are to generate {NUM_QUESTIONS} self-contained short answer questions based on the facts mentioned in the following content.
 Avoid questions that reference the content directly.
 Each question should include all relevant context and directly name any referenced items, avoiding pronouns like "it," "the game," or "the person." 
 Do not include phrases that reference the source or context, such as "mentioned in the article" or "according to the text."
 Provide the questions in an ordered list.
+"""
+
+QUESTION_GENERATION_SYS_PROMPT_MINIMAL = """\
+Generate {NUM_QUESTIONS} self-contained short answer questions.
+Each question must include all necessary context and explicitly mention any referenced items.
+Avoid pronouns like "it," "the game," or "the person."
+Do not reference the content or source.
+Provide the questions in an ordered list.
+"""
+
+QUESTION_GENERATION_SYS_PROMPT_ORIGINAL_VARIATION = """\
+Produce exactly {NUM_QUESTIONS} short answer questions that stand on their own, reflecting details from the provided material without explicitly mentioning that material.
+Each question must include all required background and specify any items by their proper name, avoiding pronouns like "it," "the game," or "the individual."
+Do not use phrases indicating a source or context, such as "as mentioned above" or "according to the passage."
+List the questions in sequential order.
+"""
+
+QUESTION_GENERATION_SYS_PROMPT_MINIMAL_VARIATION = """\
+Create {NUM_QUESTIONS} stand-alone short answer questions.
+Include all essential details and name items directly.
+Use no pronouns like "it" or "the product."
+Do not cite any source or refer to prior content.
+Present the questions in a numbered list.
 """
 
 SUMMARIZE_QUESTION_TYPE_SYS_PROMPT = """\
