@@ -4,10 +4,10 @@ import os
 import random
 from together import Together
 from .prompts import (
-    QUESTION_GENERATION_SYS_PROMPT_ORIGINAL,
-    QUESTION_GENERATION_SYS_PROMPT_MINIMAL,
-    QUESTION_GENERATION_SYS_PROMPT_ORIGINAL_VARIATION,
-    QUESTION_GENERATION_SYS_PROMPT_MINIMAL_VARIATION,
+    QUESTION_GENERATION_SYS_PROMPT_OLD,
+    QUESTION_GENERATION_SYS_PROMPT_V1,
+    QUESTION_GENERATION_SYS_PROMPT_V2,
+    QUESTION_GENERATION_SYS_PROMPT_V3,
     SUMMARIZE_QUESTION_TYPE_SYS_PROMPT,
     CLASSIFY_QUESTION_TYPE_SYS_PROMPT,
     GENERATE_ANS_SYS_PROMPT,
@@ -69,16 +69,16 @@ def get_completion(model, messages, **kwargs):
 
 
 def generate_wiki_question(
-    ctx, num_questions=1, model="gpt-4o", prompt_version="original"
+    ctx, num_questions=1, model="gpt-4o", prompt_version="v1"
 ):
-    if prompt_version == "original":
-        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_ORIGINAL
-    elif prompt_version == "minimal":
-        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_MINIMAL
-    elif prompt_version == "original_v":
-        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_ORIGINAL_VARIATION
-    elif prompt_version == "minimal_v":
-        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_MINIMAL_VARIATION
+    if prompt_version == "v1":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_V1
+    elif prompt_version == "v2":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_V2
+    elif prompt_version == "v3":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_V3
+    elif prompt_version == "old":
+        sys_prompt = QUESTION_GENERATION_SYS_PROMPT_OLD
     else:
         raise ValueError(f"Unknown prompt_version: {prompt_version}")
 
@@ -96,6 +96,10 @@ def generate_wiki_question(
         ],
     )
     generated_text = completion_text.strip()
+
+    if num_questions == 1:
+        return [re.sub(r"^\d\.", "", generated_text).strip()]
+
     new_questions = [
         re.sub(r"^\d\.", "", x).strip()
         for x in generated_text.split("\n")

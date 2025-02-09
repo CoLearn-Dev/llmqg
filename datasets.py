@@ -148,7 +148,7 @@ def c_to_cqs(p):
 
 
 def generate_llmqg_samples(
-    n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL, prompt_version="original"
+    n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL, version="v1"
 ):
     # return n/qa_per_ctx instances, each with qa_per_ctx questions
     assert n % qa_per_ctx == 0
@@ -164,12 +164,12 @@ def generate_llmqg_samples(
     )  # for the same choice between models
     cs = []
     for x in wiki_df.values:
-        cs.append((wiki_to_ctx(x), qa_per_ctx, model, prompt_version))
+        cs.append((wiki_to_ctx(x), qa_per_ctx, model, version))
     # 2. invoke generation and organize into the required format
     cqs = process_map(
         c_to_cqs,
         cs,
-        max_workers=8,
+        max_workers=8,  
     )
     return sum(cqs, [])
 
@@ -178,7 +178,7 @@ def get_llmqg_sample_loc(llm_name: str, version: str, n: int) -> str:
     return LLMQG_SAMPLE_LOC_TEMPLATE.format(llm_name=llm_name, version=version, n=n)
 
 
-def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4, llm_name="gpt", version="original"):
+def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4, llm_name="gpt", version="v1"):
     """Dump LLMQG samples for a specific LLM name and version."""
     sample_loc = get_llmqg_sample_loc(llm_name, version, n)
     if not os.path.exists(sample_loc):
@@ -194,7 +194,7 @@ def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4, llm_name="gpt", version="ori
         print(f"Sample file already exists: {sample_loc}")
 
 
-def load_llmqg_samples(n=NUM_TO_KEEP, llm_name="gpt", version="original"):
+def load_llmqg_samples(n=NUM_TO_KEEP, llm_name="gpt", version="v1"):
     """Load LLMQG samples for a specific LLM name and version."""
     sample_loc = get_llmqg_sample_loc(llm_name, version, n)
     if not os.path.exists(sample_loc):
