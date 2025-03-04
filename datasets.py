@@ -4,7 +4,12 @@ import os
 import pickle
 import pandas as pd
 from typing import Tuple, Optional
-from utils.llm_utils import generate_wiki_question, retry_until
+from utils.llm_utils import (
+    generate_wiki_question,
+    retry_until,
+    model_shorthand_map,
+    OPENAI_MODEL,
+)
 from tqdm.contrib.concurrent import process_map
 import random
 
@@ -25,9 +30,6 @@ HOTPOT_DEFAULT_LOC = "./data/hotpotqa-fullwiki"
 HOTPOT_SAMPLE_LOC = "./data/hotpot.cqas{}.pkl"
 WIKI_CSV_LOC = "./data/wiki_text_cleaned_v1.csv"
 LLMQG_SAMPLE_LOC_TEMPLATE = "./data/llmqg_{llm_name}_{version}.cqas{n}.pkl"
-
-OPENAI_MODEL = "gpt-4o"
-LLAMA_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
 
 
 def load_trivia_cqas(loc=TRIVIA_DEFAULT_LOC):
@@ -169,7 +171,7 @@ def generate_llmqg_samples(
     cqs = process_map(
         c_to_cqs,
         cs,
-        max_workers=8,  
+        max_workers=8,
     )
     return sum(cqs, [])
 
@@ -182,7 +184,9 @@ def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4, llm_name="gpt", version="v1"
     """Dump LLMQG samples for a specific LLM name and version."""
     sample_loc = get_llmqg_sample_loc(llm_name, version, n)
     if not os.path.exists(sample_loc):
-        model = OPENAI_MODEL if llm_name == "gpt" else LLAMA_MODEL
+        if llm_name not in model_shorthand_map:
+            raise ValueError(f"Unknown LLM name: {llm_name}")
+        model = model_shorthand_map[llm_name]
         print(
             f"Generating and dumping {llm_name} samples with n={n}, qa_per_ctx={qa_per_ctx}"
         )

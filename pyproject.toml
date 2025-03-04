@@ -4,6 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["nociza <azicon@berkeley.edu>"]
 readme = "README.md"
+packages = [
+    { include = "experiments", from = "." },
+    { include = "utils", from = "." }
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

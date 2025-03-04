@@ -3,7 +3,7 @@ import re
 import os
 import random
 from together import Together
-from .prompts import (
+from utils.prompts import (
     QUESTION_GENERATION_SYS_PROMPT_OLD,
     QUESTION_GENERATION_SYS_PROMPT_V1,
     QUESTION_GENERATION_SYS_PROMPT_V2,
@@ -17,11 +17,28 @@ from .prompts import (
     SELECT_RELEVANT_SENTS_SYS_PROMPT,
 )
 from dotenv import load_dotenv
+import anthropic
+from anthropic import HUMAN_PROMPT, AI_PROMPT
 
 load_dotenv()
 
+OPENAI_MODEL = "gpt-4o"
+LLAMA_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+CLAUDE_MODEL = "claude-3-7-sonnet-latest"
+DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-V3"
+
+MAX_TOKENS_DEFAULT = 1024
+
 openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+
+model_shorthand_map = {
+    "gpt": OPENAI_MODEL,
+    "llama": LLAMA_MODEL,
+    "claude": CLAUDE_MODEL,
+    "deepseek": DEEPSEEK_MODEL,
+}
 
 
 def word_cnt(s):
@@ -54,6 +71,27 @@ def get_completion(model, messages, **kwargs):
         except Exception as e:
             print(f"OpenAI completion error: {e}")
             raise
+    elif model.startswith("claude"):
+        try:
+            if messages[0]["role"] == "user":
+                message = claude_client.messages.create(
+                    model=model,
+                    temperature=kwargs.get("temperature", 0),
+                    max_tokens=kwargs.get("max_tokens", MAX_TOKENS_DEFAULT),
+                    messages=messages,
+                )
+            else:
+                message = claude_client.messages.create(
+                    model=model,
+                    temperature=kwargs.get("temperature", 0),
+                    max_tokens=kwargs.get("max_tokens", MAX_TOKENS_DEFAULT),
+                    messages=messages[1:],
+                    system=messages[0]["content"],
+                )
+            return message.content[0].text.strip()
+        except Exception as e:
+            print(f"Claude API completion error: {e}")
+            raise
     else:
         try:
             response = together_client.chat.completions.create(
@@ -68,9 +106,7 @@ def get_completion(model, messages, **kwargs):
             raise
 
 
-def generate_wiki_question(
-    ctx, num_questions=1, model="gpt-4o", prompt_version="v1"
-):
+def generate_wiki_question(ctx, num_questions=1, model="gpt-4o", prompt_version="v1"):
     if prompt_version == "v1":
         sys_prompt = QUESTION_GENERATION_SYS_PROMPT_V1
     elif prompt_version == "v2":

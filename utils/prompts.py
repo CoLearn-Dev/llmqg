@@ -7,15 +7,15 @@ Provide the questions in an ordered list.
 """
 
 QUESTION_GENERATION_SYS_PROMPT_V1 = """\
-Generate {NUM_QUESTIONS} self-contained open-ended questions based on the following content in an ordered list.
+Generate {NUM_QUESTIONS} self-contained questions based on the following content in an ordered list.
 """
 
 QUESTION_GENERATION_SYS_PROMPT_V2 = """\
-Create {NUM_QUESTIONS} stand-alone free-response questions based on the following content in an ordered list.
+Create {NUM_QUESTIONS} free-response questions based on the following content in an ordered list.
 """
 
 QUESTION_GENERATION_SYS_PROMPT_V3 = """\
-Reference exclusively the content below to craft {NUM_QUESTIONS} independent, free-response questions. Format your output as an ordered list.
+Reference exclusively the content below to craft {NUM_QUESTIONS} independent questions. Format your output as an ordered list.
 """
 
 

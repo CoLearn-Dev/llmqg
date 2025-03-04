@@ -17,8 +17,8 @@ shortcuts = {
     "hotpot": datasets.HOTPOT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
 }
 
-llm_names = ["gpt", "llama"]
-versions = ["original", "mininmal", "original_v", "minimal_v"]
+llm_names = ["gpt", "llama", "claude", "deepseek"]
+versions = ["v1", "v2", "v3", "old"]
 
 for llm_name in llm_names:
     for version in versions:
@@ -27,12 +27,20 @@ for llm_name in llm_names:
             llm_name, version, datasets.NUM_TO_KEEP
         )
 
-# Add shorthand aliases
+# shorthand aliases
 shortcuts["t"] = shortcuts["trivia"]
 shortcuts["h"] = shortcuts["hotpot"]
-shortcuts["l"] = shortcuts.get("llmqg_gpt_original")
-shortcuts["lg"] = shortcuts.get("llmqg_gpt_original")
-shortcuts["ll"] = shortcuts.get("llmqg_llama_original")
+shortcuts["lg"] = shortcuts.get("llmqg_gpt_old")
+shortcuts["ll"] = shortcuts.get("llmqg_llama_old")
+shortcuts["lgv1"] = shortcuts.get("llmqg_gpt_v1")
+shortcuts["lgv2"] = shortcuts.get("llmqg_gpt_v2")
+shortcuts["lgv3"] = shortcuts.get("llmqg_gpt_v3")
+shortcuts["llv1"] = shortcuts.get("llmqg_llama_v1")
+shortcuts["llv2"] = shortcuts.get("llmqg_llama_v2")
+shortcuts["llv3"] = shortcuts.get("llmqg_llama_v3")
+shortcuts["lcv1"] = shortcuts.get("llmqg_claude_v1")
+shortcuts["lcv2"] = shortcuts.get("llmqg_claude_v2")
+shortcuts["lcv3"] = shortcuts.get("llmqg_claude_v3")
 
 question_types = {
     1: "B",
