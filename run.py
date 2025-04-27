@@ -41,6 +41,9 @@ shortcuts["llv3"] = shortcuts.get("llmqg_llama_v3")
 shortcuts["lcv1"] = shortcuts.get("llmqg_claude_v1")
 shortcuts["lcv2"] = shortcuts.get("llmqg_claude_v2")
 shortcuts["lcv3"] = shortcuts.get("llmqg_claude_v3")
+shortcuts["ldv1"] = shortcuts.get("llmqg_deepseek_v1")
+shortcuts["ldv2"] = shortcuts.get("llmqg_deepseek_v2")
+shortcuts["ldv3"] = shortcuts.get("llmqg_deepseek_v3")
 
 question_types = {
     1: "B",
