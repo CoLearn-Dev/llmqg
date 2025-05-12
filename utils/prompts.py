@@ -11,7 +11,7 @@ Generate {NUM_QUESTIONS} self-contained questions based on the following content
 """
 
 QUESTION_GENERATION_SYS_PROMPT_V2 = """\
-Create {NUM_QUESTIONS} free-response questions based on the following content in an ordered list.
+Create {NUM_QUESTIONS} questions based on the following content in an ordered list.
 """
 
 QUESTION_GENERATION_SYS_PROMPT_V3 = """\

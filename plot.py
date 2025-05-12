@@ -93,9 +93,11 @@ class PlotUtils:
         answerable_data_without = defaultdict(dict)
 
         datasets = {
-            "hotpot": "HotpotQA",
-            "llmqg_llama": "Llama",
-            "llmqg_gpt": "GPT-4o",
+            "hotpot": "HQA",
+            "llmqg_llama_v1": "Llama",
+            "llmqg_gpt_v1": "GPT",
+            "llmqg_claude_v1": "Claude",
+            "llmqg_deepseek_v1": "DS",
         }
 
         for dataset_key, dataset_label in datasets.items():
@@ -220,11 +222,19 @@ class PlotUtils:
 
     def plot_cover(self):
         cover_data = {}
-        datasets = ["hotpot", "llmqg_llama", "llmqg_gpt"]
+        datasets = [
+            "hotpot",
+            "llmqg_llama_v1",
+            "llmqg_gpt_v1",
+            "llmqg_claude_v1",
+            "llmqg_deepseek_v1",
+        ]
         dataset_labels = {
             "hotpot": "HotpotQA",
-            "llmqg_llama": "Llama",
-            "llmqg_gpt": "GPT-4o",
+            "llmqg_llama_v1": "Llama",
+            "llmqg_gpt_v1": "GPT-4o",
+            "llmqg_claude_v1": "Claude",
+            "llmqg_deepseek_v1": "DeepSeek",
         }
         for dataset in datasets:
             results = self.inspector.cover(dataset)
