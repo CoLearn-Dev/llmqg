@@ -42,7 +42,7 @@ model_shorthand_map = {
 
 
 def word_cnt(s):
-    return len([x.strip() for x in s.split() if len(x.strip()) > 1])
+    return len([x.strip() for x in s.split() if len(x.strip()) > 0])
 
 
 def retry_until(f, kargs, p, retry=3):

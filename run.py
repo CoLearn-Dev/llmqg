@@ -328,6 +328,7 @@ class CQA_Inspector:
         group=None,
         print_outliers=False,
         n_outliers=5,
+        plot_histogram=False,
     ):
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
@@ -525,6 +526,41 @@ class CQA_Inspector:
                 print(f"Original answer: {orig}")
                 print(f"Minimized answer: {minimized}")
                 print("---")
+        if plot_histogram:
+            import matplotlib.pyplot as plt
+
+            orig_lengths = [llm_utils.word_cnt(a) for a in ans]
+            min_lengths = [x for (x, _) in shorter]
+            plt.figure(figsize=(10, 6))
+            plt.hist(
+                orig_lengths,
+                bins=30,
+                alpha=0.6,
+                label="Original",
+                color="tab:blue",
+            )
+            plt.hist(
+                min_lengths,
+                bins=30,
+                alpha=0.6,
+                label="Minimized",
+                color="tab:orange",
+            )
+            plt.title(
+                f"Answer Length Distribution Before and After Shortening\n({data_path})"
+            )
+            plt.xlabel("Answer Length (words)")
+            plt.ylabel("Frequency")
+            plt.legend()
+            plt.tight_layout()
+            plot_dir = "plots"
+            os.makedirs(plot_dir, exist_ok=True)
+            plot_path = os.path.join(
+                plot_dir, f"answer_length_hist_{os.path.basename(data_path)}.png"
+            )
+            plt.savefig(plot_path)
+            plt.close()
+            print(f"Saved histogram plot to {plot_path}")
         return {
             "minimize_answer_length_stats": df.describe()[0].to_dict(),
             "reduction_rate_stats": df_reduction.describe()[0].to_dict(),
