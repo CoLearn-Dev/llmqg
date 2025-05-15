@@ -320,7 +320,15 @@ class CQA_Inspector:
             results[label] = {"count": v, "percentage": percentage}
         return results
 
-    def len_req(self, data_path, gen_path=None, stat_only=False, group=None):
+    def len_req(
+        self,
+        data_path,
+        gen_path=None,
+        stat_only=False,
+        group=None,
+        print_outliers=False,
+        n_outliers=5,
+    ):
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
         with open(data_path, "rb") as f:
@@ -374,6 +382,19 @@ class CQA_Inspector:
 
             stats = df.describe()
             print(stats)
+            # Print outliers if requested
+            reduction_rates = [
+                (
+                    llm_utils.word_cnt(i[2]) / llm_utils.word_cnt(i[2])
+                    if llm_utils.word_cnt(i[2]) > 0
+                    else 0
+                )
+                for i in cqas
+            ]
+            # No minimized answers in stat_only, so just skip or print a message
+            print(
+                "No minimized answers available in stat_only mode for outlier display."
+            )
             return {
                 "minimize_answer_length_stats": stats[0].to_dict(),
                 "reduction_rate_stats": stats[0].to_dict(),
@@ -435,6 +456,75 @@ class CQA_Inspector:
             [x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)]
         )
         print(df_reduction.describe())
+
+        # Print answer length stats for original and minimized answers
+        orig_lengths = [llm_utils.word_cnt(a) for a in ans]
+        min_lengths = [x for (x, _) in shorter]
+        orig_len_stats = pd.Series(orig_lengths).describe()
+        min_len_stats = pd.Series(min_lengths).describe()
+        print("\nOriginal answer length stats:")
+        print(orig_len_stats)
+        print("\nMinimized answer length stats:")
+        print(min_len_stats)
+
+        # Print outliers if requested
+        if print_outliers:
+            reduction_rates = [
+                (
+                    (
+                        i,
+                        (x / llm_utils.word_cnt(a)) if llm_utils.word_cnt(a) > 0 else 0,
+                        a,
+                        x2,
+                        llm_utils.word_cnt(a),
+                        x,
+                        cqas[i][1],
+                    )
+                )
+                for i, ((x, x2), a) in enumerate(zip(shorter, ans))
+            ]
+            # Most shortened (lowest reduction rate)
+            most_shortened = sorted(reduction_rates, key=lambda t: t[1])[:n_outliers]
+            # Least shortened (highest reduction rate)
+            least_shortened = sorted(reduction_rates, key=lambda t: -t[1])[:n_outliers]
+            print(
+                f"\nTop {n_outliers} most shortened examples (lowest reduction rate):"
+            )
+            for (
+                idx,
+                rate,
+                orig,
+                minimized,
+                orig_len,
+                min_len,
+                question,
+            ) in most_shortened:
+                print(
+                    f"Example #{idx} | Reduction rate: {rate:.2f} | Orig len: {orig_len} | Min len: {min_len}"
+                )
+                print(f"Question: {question}")
+                print(f"Original answer: {orig}")
+                print(f"Minimized answer: {minimized}")
+                print("---")
+            print(
+                f"\nTop {n_outliers} least shortened examples (highest reduction rate):"
+            )
+            for (
+                idx,
+                rate,
+                orig,
+                minimized,
+                orig_len,
+                min_len,
+                question,
+            ) in least_shortened:
+                print(
+                    f"Example #{idx} | Reduction rate: {rate:.2f} | Orig len: {orig_len} | Min len: {min_len}"
+                )
+                print(f"Question: {question}")
+                print(f"Original answer: {orig}")
+                print(f"Minimized answer: {minimized}")
+                print("---")
         return {
             "minimize_answer_length_stats": df.describe()[0].to_dict(),
             "reduction_rate_stats": df_reduction.describe()[0].to_dict(),
