@@ -46,16 +46,16 @@ shortcuts["ldv2"] = shortcuts.get("llmqg_deepseek_v2")
 shortcuts["ldv3"] = shortcuts.get("llmqg_deepseek_v3")
 
 question_types = {
-    1: "B",
+    1: "A",
     2: "A",
     3: "A",
     4: "A",
-    5: "C",
-    6: "C",
-    7: "A",
+    5: "A",
+    6: "B",
+    7: "B",
     8: "C",
-    9: "B",
-    10: "A",
+    9: "C",
+    10: "C",
 }
 
 
@@ -330,6 +330,7 @@ class CQA_Inspector:
         n_outliers=5,
         plot_histogram=False,
     ):
+        shortname = data_path.split("/")[-1]
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
         with open(data_path, "rb") as f:
@@ -423,6 +424,8 @@ class CQA_Inspector:
         print(f"# Minimize answer length - {data_path}")
         df = pd.DataFrame([x for x, _ in shorter])
 
+        # Track indices for group filtering
+        group_indices = None
         if group is not None:
             if group not in {"A", "B", "C"}:
                 raise ValueError("Group must be one of 'A', 'B', or 'C'.")
@@ -450,6 +453,12 @@ class CQA_Inspector:
             print("# Filtered Sample num:", len(filtered_df))
             print("# Group Ratio:", len(filtered_df) / len(merged_df))
             df = filtered_df
+            # Get indices of filtered rows
+            group_indices = filtered_df.index.tolist()
+            # Filter ans, shorter, cqas to match group
+            ans = [ans[i] for i in group_indices]
+            shorter = [shorter[i] for i in group_indices]
+            cqas = [cqas[i] for i in group_indices]
 
         print(df.describe())
         print("## Reduction rate:")
@@ -528,26 +537,28 @@ class CQA_Inspector:
                 print("---")
         if plot_histogram:
             import matplotlib.pyplot as plt
+            import numpy as np
 
             orig_lengths = [llm_utils.word_cnt(a) for a in ans]
             min_lengths = [x for (x, _) in shorter]
+            # Compute bins from combined data
+            all_lengths = orig_lengths + min_lengths
+            bins = np.histogram_bin_edges(all_lengths, bins=30)
             plt.figure(figsize=(10, 6))
+            plt.rcParams.update({"font.size": 24})  # Make font larger
             plt.hist(
                 orig_lengths,
-                bins=30,
+                bins=bins,
                 alpha=0.6,
                 label="Original",
                 color="tab:blue",
             )
             plt.hist(
                 min_lengths,
-                bins=30,
+                bins=bins,
                 alpha=0.6,
                 label="Minimized",
                 color="tab:orange",
-            )
-            plt.title(
-                f"Answer Length Distribution Before and After Shortening\n({data_path})"
             )
             plt.xlabel("Answer Length (words)")
             plt.ylabel("Frequency")
@@ -555,8 +566,11 @@ class CQA_Inspector:
             plt.tight_layout()
             plot_dir = "plots"
             os.makedirs(plot_dir, exist_ok=True)
+            # Add group name to filename if group is specified
+            group_suffix = f"_group_{group}" if group else ""
             plot_path = os.path.join(
-                plot_dir, f"answer_length_hist_{os.path.basename(data_path)}.png"
+                plot_dir,
+                f"answer_length_hist_{os.path.basename(shortname)}{group_suffix}.png",
             )
             plt.savefig(plot_path)
             plt.close()

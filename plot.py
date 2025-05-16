@@ -128,9 +128,9 @@ class PlotUtils:
         datasets = {
             "hotpot": "HQA",
             "llmqg_llama_v1": "Llama",
-            "llmqg_gpt_v1": "GPT",
-            "llmqg_claude_v1": "Claude",
             "llmqg_deepseek_v1": "DS",
+            "llmqg_claude_v1": "Claude",
+            "llmqg_gpt_v1": "GPT",
         }
 
         for dataset_key, dataset_label in datasets.items():
@@ -177,7 +177,7 @@ class PlotUtils:
             title="Ratings", bbox_to_anchor=(1.05, 1), loc="upper left", reverse=True
         )
         legend.remove()
-        axes[0].tick_params(axis="x", rotation=0)
+        axes[0].tick_params(axis="x", rotation=0)  # Rotate x-axis labels
         axes[0].set_ylim(0, 1.0)
 
         # Without Context
@@ -192,7 +192,7 @@ class PlotUtils:
         axes[1].legend(
             title="Ratings", bbox_to_anchor=(1.05, 1), loc="upper left", reverse=True
         )
-        axes[1].tick_params(axis="x", rotation=0)
+        axes[1].tick_params(axis="x", rotation=0)  # Rotate x-axis labels
         axes[1].set_ylim(0, 1.0)
 
         plt.tight_layout()
@@ -258,15 +258,15 @@ class PlotUtils:
         datasets = [
             "hotpot",
             "llmqg_llama_v1",
-            "llmqg_gpt_v1",
-            "llmqg_claude_v1",
             "llmqg_deepseek_v1",
+            "llmqg_claude_v1",
+            "llmqg_gpt_v1",
         ]
         dataset_labels = {
             "hotpot": "HotpotQA",
-            "llmqg_llama_v1": "Llama-3.3-70B",
+            "llmqg_llama_v1": "Llama-3.3",
             "llmqg_deepseek_v1": "DeepSeek-V3",
-            "llmqg_claude_v1": "Claude-3.7-Sonnet",
+            "llmqg_claude_v1": "Claude-3.7",
             "llmqg_gpt_v1": "GPT-4o",
         }
         for dataset in datasets:
@@ -290,13 +290,11 @@ class PlotUtils:
                 label=dataset_labels[dataset],
                 linewidth=2,
             )
-
-        plt.title("Coverage Distribution by Dataset")
         plt.xlabel("Coverage Bucket")
         plt.ylabel("Frequency")
         plt.ylim(0, 0.55)
         plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-        plt.xticks(rotation=45, ha="center")
+        plt.xticks(rotation=20, ha="center")
         plt.grid(axis="y", linestyle="--", alpha=0.7)
         plt.legend(title="Dataset")
         plt.tight_layout()
