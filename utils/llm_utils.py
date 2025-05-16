@@ -18,7 +18,6 @@ from utils.prompts import (
 )
 from dotenv import load_dotenv
 import anthropic
-from anthropic import HUMAN_PROMPT, AI_PROMPT
 
 load_dotenv()
 
