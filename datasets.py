@@ -1,9 +1,15 @@
 import json
+import fire
 import os
 import pickle
 import pandas as pd
 from typing import Tuple, Optional
-from .llm_utils import generate_wiki_question, retry_until
+from utils.llm_utils import (
+    generate_wiki_question,
+    retry_until,
+    model_shorthand_map,
+    OPENAI_MODEL,
+)
 from tqdm.contrib.concurrent import process_map
 import random
 
@@ -23,11 +29,7 @@ TRIVIA_SAMPLE_LOC = "./data/trivia.cqas{}.pkl"
 HOTPOT_DEFAULT_LOC = "./data/hotpotqa-fullwiki"
 HOTPOT_SAMPLE_LOC = "./data/hotpot.cqas{}.pkl"
 WIKI_CSV_LOC = "./data/wiki_text_cleaned_v1.csv"
-LLMQG_GPT_SAMPLE_LOC = "./data/llmqg_gpt.cqas{}.pkl"
-LLMQG_LLAMA_SAMPLE_LOC = "./data/llmqg_llama.cqas{}.pkl"
-
-OPENAI_MODEL = "gpt-4o"
-LLAMA_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+LLMQG_SAMPLE_LOC_TEMPLATE = "./data/llmqg_{llm_name}_{version}.cqas{n}.pkl"
 
 
 def load_trivia_cqas(loc=TRIVIA_DEFAULT_LOC):
@@ -133,16 +135,23 @@ def wiki_to_ctx(x):
 
 
 def c_to_cqs(p):
-    c, qa_per_ctx, model = p
+    c, qa_per_ctx, model, pv = p
     qs = retry_until(
         generate_wiki_question,
-        {"ctx": c, "num_questions": qa_per_ctx, "model": model},
+        {
+            "ctx": c,
+            "num_questions": qa_per_ctx,
+            "model": model,
+            "prompt_version": pv,
+        },
         lambda x: len(x) == qa_per_ctx,
     )
     return [(c, q, None) for q in qs]
 
 
-def generate_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL):
+def generate_llmqg_samples(
+    n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL, version="v1"
+):
     # return n/qa_per_ctx instances, each with qa_per_ctx questions
     assert n % qa_per_ctx == 0
     # 1. filter input set, sample required number of contexts
@@ -157,7 +166,7 @@ def generate_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL):
     )  # for the same choice between models
     cs = []
     for x in wiki_df.values:
-        cs.append((wiki_to_ctx(x), qa_per_ctx, model))
+        cs.append((wiki_to_ctx(x), qa_per_ctx, model, version))
     # 2. invoke generation and organize into the required format
     cqs = process_map(
         c_to_cqs,
@@ -167,30 +176,31 @@ def generate_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=1, model=OPENAI_MODEL):
     return sum(cqs, [])
 
 
-def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4):
-    if not os.path.exists(LLMQG_GPT_SAMPLE_LOC.format(n)):
-        print(f"Generating and dumping GPT samples with n={n}, qa_per_ctx={qa_per_ctx}")
-        with open(LLMQG_GPT_SAMPLE_LOC.format(n), "wb") as f:
-            pickle.dump(generate_llmqg_samples(n, qa_per_ctx, model=OPENAI_MODEL), f)
-    else:
-        print(f"Sample file already exists: {LLMQG_GPT_SAMPLE_LOC.format(n)}")
-    if not os.path.exists(LLMQG_LLAMA_SAMPLE_LOC.format(n)):
+def get_llmqg_sample_loc(llm_name: str, version: str, n: int) -> str:
+    return LLMQG_SAMPLE_LOC_TEMPLATE.format(llm_name=llm_name, version=version, n=n)
+
+
+def dump_llmqg_samples(n=NUM_TO_KEEP, qa_per_ctx=4, llm_name="gpt", version="v1"):
+    """Dump LLMQG samples for a specific LLM name and version."""
+    sample_loc = get_llmqg_sample_loc(llm_name, version, n)
+    if not os.path.exists(sample_loc):
+        if llm_name not in model_shorthand_map:
+            raise ValueError(f"Unknown LLM name: {llm_name}")
+        model = model_shorthand_map[llm_name]
         print(
-            f"Generating and dumping LLAMA samples with n={n}, qa_per_ctx={qa_per_ctx}"
+            f"Generating and dumping {llm_name} samples with n={n}, qa_per_ctx={qa_per_ctx}"
         )
-        with open(LLMQG_LLAMA_SAMPLE_LOC.format(n), "wb") as f:
-            pickle.dump(generate_llmqg_samples(n, qa_per_ctx, model=LLAMA_MODEL), f)
+        with open(sample_loc, "wb") as f:
+            pickle.dump(
+                generate_llmqg_samples(n, qa_per_ctx, model=model, version=version), f
+            )
     else:
-        print(f"Sample file already exists: {LLMQG_LLAMA_SAMPLE_LOC.format(n)}")
+        print(f"Sample file already exists: {sample_loc}")
 
 
-def load_llmqg_samples(n=NUM_TO_KEEP, model=OPENAI_MODEL):
-    if model == OPENAI_MODEL:
-        sample_loc = LLMQG_GPT_SAMPLE_LOC.format(n)
-    elif model == LLAMA_MODEL:
-        sample_loc = LLMQG_LLAMA_SAMPLE_LOC.format(n)
-    else:
-        raise ValueError(f"Unsupported model: {model}")
+def load_llmqg_samples(n=NUM_TO_KEEP, llm_name="gpt", version="v1"):
+    """Load LLMQG samples for a specific LLM name and version."""
+    sample_loc = get_llmqg_sample_loc(llm_name, version, n)
     if not os.path.exists(sample_loc):
         raise FileNotFoundError(f"Sample file does not exist: {sample_loc}")
     with open(sample_loc, "rb") as f:
@@ -198,6 +208,14 @@ def load_llmqg_samples(n=NUM_TO_KEEP, model=OPENAI_MODEL):
 
 
 if __name__ == "__main__":
-    # dump_trivia_samples()
-    # dump_hotpot_samples()
-    dump_llmqg_samples()
+    fire.Fire(
+        {
+            "dump_trivia_samples": dump_trivia_samples,
+            "load_trivia_samples": load_trivia_samples,
+            "dump_hotpot_samples": dump_hotpot_samples,
+            "load_hotpot_samples": load_hotpot_samples,
+            "generate_llmqg_samples": generate_llmqg_samples,
+            "dump_llmqg_samples": dump_llmqg_samples,
+            "load_llmqg_samples": load_llmqg_samples,
+        }
+    )

@@ -14,7 +14,7 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 class PlotUtils:
     def __init__(self):
         self.inspector = CQA_Inspector()
-        self.datasets = ["trivia", "hotpot", "llmqg_gpt", "llmqg_llama"]
+        self.datasets = ["trivia", "hotpot", "llmqg_gpt_v1", "llmqg_llama_v1"]
 
     def plot_stat(self):
         stats_data = {}
@@ -42,28 +42,61 @@ class PlotUtils:
         print(f"Saved plot to {plot_path}")
 
     def plot_start_word(self, top_n=10):
+        import plotly.graph_objects as go
+        import plotly.io as pio
+
         for dataset in self.datasets:
             results = self.inspector.start_word(dataset)
+            # Build hierarchical data for sunburst
+            labels = []
+            parents = []
+            values = []
+            label_map = {}
+            # First layer (first word)
             first_level = results.get(1, {})
-            top_words = sorted(first_level.items(), key=lambda x: x[1], reverse=True)[
-                :top_n
-            ]
-            words, frequencies = zip(*top_words)
-
-            plt.figure(figsize=(10, 6))
-            sns.barplot(x=list(words), y=list(frequencies))
-            plt.title(f"Top {top_n} Starting Words - {dataset.capitalize()}")
-            plt.xlabel("Starting Word")
-            plt.ylabel("Frequency (%)")
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-
-            plot_path = os.path.join(
-                PLOT_DIR, f"top_{top_n}_starting_words_{dataset}.png"
+            for w1, freq1 in sorted(
+                first_level.items(), key=lambda x: x[1], reverse=True
+            )[:top_n]:
+                w1_str = w1[0] if isinstance(w1, tuple) else str(w1)
+                labels.append(w1_str)
+                parents.append("")
+                values.append(freq1)
+                label_map[w1] = w1_str
+            # Second layer (first+second word)
+            second_level = results.get(2, {})
+            for w2, freq2 in second_level.items():
+                w1 = (w2[0],)
+                if w1 in label_map:
+                    w2_str = " ".join(w2)
+                    labels.append(w2_str)
+                    parents.append(label_map[w1])
+                    values.append(freq2)
+                    label_map[w2] = w2_str
+            # Third layer (first+second+third word)
+            third_level = results.get(3, {})
+            for w3, freq3 in third_level.items():
+                w2 = (w3[0], w3[1])
+                if w2 in label_map:
+                    w3_str = " ".join(w3)
+                    labels.append(w3_str)
+                    parents.append(label_map[w2])
+                    values.append(freq3)
+            fig = go.Figure(
+                go.Sunburst(
+                    labels=labels,
+                    parents=parents,
+                    values=values,
+                    branchvalues="total",
+                    maxdepth=3,
+                )
             )
-            plt.savefig(plot_path)
-            plt.close()
-            print(f"Saved plot to {plot_path}")
+            fig.update_layout(
+                margin=dict(t=40, l=0, r=0, b=0),
+                title=f"Start Word Sunburst - {dataset.capitalize()}",
+            )
+            plot_path = os.path.join(PLOT_DIR, f"start_word_sunburst_{dataset}.png")
+            pio.write_image(fig, plot_path, format="png")
+            print(f"Saved sunburst plot to {plot_path}")
 
     def plot_qtype(self):
         qtype_data = {}
@@ -93,9 +126,11 @@ class PlotUtils:
         answerable_data_without = defaultdict(dict)
 
         datasets = {
-            "hotpot": "HotpotQA",
-            "llmqg_llama": "Llama",
-            "llmqg_gpt": "GPT-4o",
+            "hotpot": "HQA",
+            "llmqg_llama_v1": "Llama",
+            "llmqg_deepseek_v1": "DS",
+            "llmqg_claude_v1": "Claude",
+            "llmqg_gpt_v1": "GPT",
         }
 
         for dataset_key, dataset_label in datasets.items():
@@ -123,7 +158,7 @@ class PlotUtils:
         ]
         plt.rcParams.update(
             {
-                "font.size": 45,
+                "font.size": 32,
             }
         )
 
@@ -142,7 +177,7 @@ class PlotUtils:
             title="Ratings", bbox_to_anchor=(1.05, 1), loc="upper left", reverse=True
         )
         legend.remove()
-        axes[0].tick_params(axis="x", rotation=0)
+        axes[0].tick_params(axis="x", rotation=0)  # Rotate x-axis labels
         axes[0].set_ylim(0, 1.0)
 
         # Without Context
@@ -157,7 +192,7 @@ class PlotUtils:
         axes[1].legend(
             title="Ratings", bbox_to_anchor=(1.05, 1), loc="upper left", reverse=True
         )
-        axes[1].tick_params(axis="x", rotation=0)
+        axes[1].tick_params(axis="x", rotation=0)  # Rotate x-axis labels
         axes[1].set_ylim(0, 1.0)
 
         plt.tight_layout()
@@ -220,11 +255,19 @@ class PlotUtils:
 
     def plot_cover(self):
         cover_data = {}
-        datasets = ["hotpot", "llmqg_llama", "llmqg_gpt"]
+        datasets = [
+            "hotpot",
+            "llmqg_llama_v1",
+            "llmqg_deepseek_v1",
+            "llmqg_claude_v1",
+            "llmqg_gpt_v1",
+        ]
         dataset_labels = {
             "hotpot": "HotpotQA",
-            "llmqg_llama": "Llama",
-            "llmqg_gpt": "GPT-4o",
+            "llmqg_llama_v1": "Llama-3.3",
+            "llmqg_deepseek_v1": "DeepSeek-V3",
+            "llmqg_claude_v1": "Claude-3.7",
+            "llmqg_gpt_v1": "GPT-4o",
         }
         for dataset in datasets:
             results = self.inspector.cover(dataset)
@@ -235,29 +278,27 @@ class PlotUtils:
 
         example_buckets = cover_data[datasets[0]]["buckets"]
         bucket_labels = [f"{ll:.1f}-{rr:.1f}" for ll, rr in example_buckets]
-        fig, axs = plt.subplots(len(datasets), 1, figsize=(10, 10), sharex=True)
+        plt.figure(figsize=(12, 7))
+        plt.rcParams.update({"font.size": 18})
 
-        plt.rcParams.update(
-            {
-                "font.size": 20,
-            }
-        )
-
-        if len(datasets) == 1:
-            axs = [axs]
-
-        for ax, dataset in zip(axs, datasets):
+        for dataset in datasets:
             bucket_freq = cover_data[dataset]["bucket_freq"]
-            ax.bar(bucket_labels, bucket_freq, color="skyblue", width=1.0)
-            ax.set_title(dataset_labels[dataset])
-            ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-            ax.yaxis.set_tick_params(labelsize=17)
-            ax.set_ylim(0, 0.55)
-            ax.grid(axis="y", linestyle="--", alpha=0.7)
-
-        plt.setp(axs[-1].get_xticklabels(), rotation=45, ha="center", fontsize=17)
+            plt.plot(
+                bucket_labels,
+                bucket_freq,
+                marker="o",
+                label=dataset_labels[dataset],
+                linewidth=2,
+            )
+        plt.xlabel("Coverage Bucket")
+        plt.ylabel("Frequency")
+        plt.ylim(0, 0.55)
+        plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+        plt.xticks(rotation=20, ha="center")
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
+        plt.legend(title="Dataset")
         plt.tight_layout()
-        plt.savefig(os.path.join(PLOT_DIR, "coverage_histogram.png"))
+        plt.savefig(os.path.join(PLOT_DIR, "coverage.png"))
         plt.close()
 
     def plot_all(self):

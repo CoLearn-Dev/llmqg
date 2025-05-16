@@ -1,10 +1,23 @@
-QUESTION_GENERATION_SYS_PROMPT = """\
+QUESTION_GENERATION_SYS_PROMPT_OLD = """\
 You are to generate {NUM_QUESTIONS} self-contained short answer questions based on the facts mentioned in the following content.
 Avoid questions that reference the content directly.
 Each question should include all relevant context and directly name any referenced items, avoiding pronouns like "it," "the game," or "the person." 
 Do not include phrases that reference the source or context, such as "mentioned in the article" or "according to the text."
 Provide the questions in an ordered list.
 """
+
+QUESTION_GENERATION_SYS_PROMPT_V1 = """\
+Generate {NUM_QUESTIONS} self-contained questions based on the following content in an ordered list.
+"""
+
+QUESTION_GENERATION_SYS_PROMPT_V2 = """\
+Create {NUM_QUESTIONS} questions based on the following content in an ordered list.
+"""
+
+QUESTION_GENERATION_SYS_PROMPT_V3 = """\
+Reference exclusively the content below to craft {NUM_QUESTIONS} independent questions. Format your output as an ordered list.
+"""
+
 
 SUMMARIZE_QUESTION_TYPE_SYS_PROMPT = """\
 Your task is to summarize the types of the following questions based on their form, not their topic.
@@ -17,16 +30,16 @@ Present your summary in an ordered list. For each group:
 """
 
 QUESTION_TYPES = """\
-1. **Verification/Affirmation Questions**: These questions ask for confirmation about the equivalence or relationship between two or more entities. They often use formats like "Are...?" or "Which...?"
-2. **Specific Fact and Figure Questions**: These questions request a specific quantitative or qualitative fact. They are straightforward and seek concrete data or a precise answer, often involving numbers or specific details.
-3. **Identity and Attribution Questions**: These inquiries focus on identifying a person or entity responsible for an action or associated with a work. They tend to ask "Who...?" or refer to persons or origins related to a context.
-4. **Which/What-Based General Knowledge Questions**: This group contains questions that start with "Which" or "What" and inquire about general knowledge, often requiring a selection from a set or identification of a type/category.
-5. **Event/Outcome Questions**: These questions inquire about the outcome of specific events or actions, focusing on consequences or results. They often address changes, damages, or effects.
-6. **Sequential/Ordering/Causation Questions**: These questions require identifying a sequence, comparison, or causation among entities, often using terms like "first," "before," "between," etc.
-7. **Location-Based Questions**: These questions focus on identifying a geographic location or specific place where something is based or occurs.
+1. **Identity and Attribution Questions**: These inquiries focus on identifying a person or entity responsible for an action or associated with a work. They tend to ask "Who...?" or refer to persons or origins related to a context.
+2. **Which/What-Based General Knowledge Questions**: This group contains questions that start with "Which" or "What" and inquire about general knowledge, often requiring a selection from a set or identification of a type/category.
+3. **Location-Based Questions**: These questions focus on identifying a geographic location or specific place where something is based or occurs.
+4. **Classification and Categorization Questions**: These inquiries request the classification or categorical identity of entities or things, often seeking to place an item within a broader group or category.
+5. **Specific Fact and Figure Questions**: These questions request a specific quantitative or qualitative fact. They are straightforward and seek concrete data or a precise answer, often involving numbers or specific details.
+6. **Comparison and Selection Questions**: Questions in this group involve comparing two entities to determine which one holds a particular status or characteristic, often using formats like "Between X and Y, who/which is...?"
+7. **Verification/Affirmation Questions**: These questions ask for confirmation about the equivalence or relationship between two or more entities. They often use formats like "Are...?" or "Which...?"
 8. **Descriptive/Characterization Questions**: These questions seek an explanation or characterization of entities, often requiring a description of how or why something is the way it is, involving traits or actions.
-9. **Comparison and Selection Questions**: Questions in this group involve comparing two entities to determine which one holds a particular status or characteristic, often using formats like "Between X and Y, who/which is...?"
-10. **Classification and Categorization Questions**: These inquiries request the classification or categorical identity of entities or things, often seeking to place an item within a broader group or category.
+9. **Event/Outcome Questions**: These questions inquire about the outcome of specific events or actions, focusing on consequences or results. They often address changes, damages, or effects.
+10. **Sequential/Ordering/Causation Questions**: These questions require identifying a sequence, comparison, or causation among entities, often using terms like "first," "before," "between," etc.
 """
 
 CLASSIFY_QUESTION_TYPE_SYS_PROMPT = f"""\

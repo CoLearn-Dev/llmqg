@@ -2,7 +2,7 @@ import os
 import pickle
 import random
 import fire
-import utils.datasets as datasets
+import datasets
 import pandas as pd
 from tqdm.contrib.concurrent import process_map
 from collections import Counter
@@ -15,27 +15,47 @@ from experiments.coverage import detect_coverage
 shortcuts = {
     "trivia": datasets.TRIVIA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
     "hotpot": datasets.HOTPOT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg_gpt": datasets.LLMQG_GPT_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
-    "llmqg_llama": datasets.LLMQG_LLAMA_SAMPLE_LOC.format(datasets.NUM_TO_KEEP),
 }
+
+llm_names = ["gpt", "llama", "claude", "deepseek"]
+versions = ["v1", "v2", "v3", "old"]
+
+for llm_name in llm_names:
+    for version in versions:
+        key = f"llmqg_{llm_name}_{version}"
+        shortcuts[key] = datasets.get_llmqg_sample_loc(
+            llm_name, version, datasets.NUM_TO_KEEP
+        )
+
+# shorthand aliases
 shortcuts["t"] = shortcuts["trivia"]
 shortcuts["h"] = shortcuts["hotpot"]
-shortcuts["l"] = shortcuts["llmqg"]
-shortcuts["lg"] = shortcuts["llmqg_gpt"]
-shortcuts["ll"] = shortcuts["llmqg_llama"]
+shortcuts["lg"] = shortcuts.get("llmqg_gpt_old")
+shortcuts["ll"] = shortcuts.get("llmqg_llama_old")
+shortcuts["lgv1"] = shortcuts.get("llmqg_gpt_v1")
+shortcuts["lgv2"] = shortcuts.get("llmqg_gpt_v2")
+shortcuts["lgv3"] = shortcuts.get("llmqg_gpt_v3")
+shortcuts["llv1"] = shortcuts.get("llmqg_llama_v1")
+shortcuts["llv2"] = shortcuts.get("llmqg_llama_v2")
+shortcuts["llv3"] = shortcuts.get("llmqg_llama_v3")
+shortcuts["lcv1"] = shortcuts.get("llmqg_claude_v1")
+shortcuts["lcv2"] = shortcuts.get("llmqg_claude_v2")
+shortcuts["lcv3"] = shortcuts.get("llmqg_claude_v3")
+shortcuts["ldv1"] = shortcuts.get("llmqg_deepseek_v1")
+shortcuts["ldv2"] = shortcuts.get("llmqg_deepseek_v2")
+shortcuts["ldv3"] = shortcuts.get("llmqg_deepseek_v3")
 
 question_types = {
-    1: "B",
+    1: "A",
     2: "A",
     3: "A",
     4: "A",
-    5: "C",
-    6: "C",
-    7: "A",
+    5: "A",
+    6: "B",
+    7: "B",
     8: "C",
-    9: "B",
-    10: "A",
+    9: "C",
+    10: "C",
 }
 
 
@@ -300,7 +320,17 @@ class CQA_Inspector:
             results[label] = {"count": v, "percentage": percentage}
         return results
 
-    def len_req(self, data_path, gen_path=None, stat_only=False, group=None):
+    def len_req(
+        self,
+        data_path,
+        gen_path=None,
+        stat_only=False,
+        group=None,
+        print_outliers=False,
+        n_outliers=5,
+        plot_histogram=False,
+    ):
+        shortname = data_path.split("/")[-1]
         if data_path in shortcuts:
             data_path = shortcuts[data_path]
         with open(data_path, "rb") as f:
@@ -354,6 +384,19 @@ class CQA_Inspector:
 
             stats = df.describe()
             print(stats)
+            # Print outliers if requested
+            reduction_rates = [
+                (
+                    llm_utils.word_cnt(i[2]) / llm_utils.word_cnt(i[2])
+                    if llm_utils.word_cnt(i[2]) > 0
+                    else 0
+                )
+                for i in cqas
+            ]
+            # No minimized answers in stat_only, so just skip or print a message
+            print(
+                "No minimized answers available in stat_only mode for outlier display."
+            )
             return {
                 "minimize_answer_length_stats": stats[0].to_dict(),
                 "reduction_rate_stats": stats[0].to_dict(),
@@ -381,6 +424,8 @@ class CQA_Inspector:
         print(f"# Minimize answer length - {data_path}")
         df = pd.DataFrame([x for x, _ in shorter])
 
+        # Track indices for group filtering
+        group_indices = None
         if group is not None:
             if group not in {"A", "B", "C"}:
                 raise ValueError("Group must be one of 'A', 'B', or 'C'.")
@@ -408,6 +453,12 @@ class CQA_Inspector:
             print("# Filtered Sample num:", len(filtered_df))
             print("# Group Ratio:", len(filtered_df) / len(merged_df))
             df = filtered_df
+            # Get indices of filtered rows
+            group_indices = filtered_df.index.tolist()
+            # Filter ans, shorter, cqas to match group
+            ans = [ans[i] for i in group_indices]
+            shorter = [shorter[i] for i in group_indices]
+            cqas = [cqas[i] for i in group_indices]
 
         print(df.describe())
         print("## Reduction rate:")
@@ -415,6 +466,115 @@ class CQA_Inspector:
             [x / llm_utils.word_cnt(a) for (x, _), a in zip(shorter, ans)]
         )
         print(df_reduction.describe())
+
+        # Print answer length stats for original and minimized answers
+        orig_lengths = [llm_utils.word_cnt(a) for a in ans]
+        min_lengths = [x for (x, _) in shorter]
+        orig_len_stats = pd.Series(orig_lengths).describe()
+        min_len_stats = pd.Series(min_lengths).describe()
+        print("\nOriginal answer length stats:")
+        print(orig_len_stats)
+        print("\nMinimized answer length stats:")
+        print(min_len_stats)
+
+        # Print outliers if requested
+        if print_outliers:
+            reduction_rates = [
+                (
+                    (
+                        i,
+                        (x / llm_utils.word_cnt(a)) if llm_utils.word_cnt(a) > 0 else 0,
+                        a,
+                        x2,
+                        llm_utils.word_cnt(a),
+                        x,
+                        cqas[i][1],
+                    )
+                )
+                for i, ((x, x2), a) in enumerate(zip(shorter, ans))
+            ]
+            # Most shortened (lowest reduction rate)
+            most_shortened = sorted(reduction_rates, key=lambda t: t[1])[:n_outliers]
+            # Least shortened (highest reduction rate)
+            least_shortened = sorted(reduction_rates, key=lambda t: -t[1])[:n_outliers]
+            print(
+                f"\nTop {n_outliers} most shortened examples (lowest reduction rate):"
+            )
+            for (
+                idx,
+                rate,
+                orig,
+                minimized,
+                orig_len,
+                min_len,
+                question,
+            ) in most_shortened:
+                print(
+                    f"Example #{idx} | Reduction rate: {rate:.2f} | Orig len: {orig_len} | Min len: {min_len}"
+                )
+                print(f"Question: {question}")
+                print(f"Original answer: {orig}")
+                print(f"Minimized answer: {minimized}")
+                print("---")
+            print(
+                f"\nTop {n_outliers} least shortened examples (highest reduction rate):"
+            )
+            for (
+                idx,
+                rate,
+                orig,
+                minimized,
+                orig_len,
+                min_len,
+                question,
+            ) in least_shortened:
+                print(
+                    f"Example #{idx} | Reduction rate: {rate:.2f} | Orig len: {orig_len} | Min len: {min_len}"
+                )
+                print(f"Question: {question}")
+                print(f"Original answer: {orig}")
+                print(f"Minimized answer: {minimized}")
+                print("---")
+        if plot_histogram:
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            orig_lengths = [llm_utils.word_cnt(a) for a in ans]
+            min_lengths = [x for (x, _) in shorter]
+            # Compute bins from combined data
+            all_lengths = orig_lengths + min_lengths
+            bins = np.histogram_bin_edges(all_lengths, bins=30)
+            plt.figure(figsize=(10, 6))
+            plt.rcParams.update({"font.size": 24})  # Make font larger
+            plt.hist(
+                orig_lengths,
+                bins=bins,
+                alpha=0.6,
+                label="Original",
+                color="tab:blue",
+            )
+            plt.hist(
+                min_lengths,
+                bins=bins,
+                alpha=0.6,
+                label="Minimized",
+                color="tab:orange",
+            )
+            plt.xlabel("Answer Length (words)")
+            plt.ylabel("Frequency")
+            plt.legend()
+            plt.tight_layout()
+            plot_dir = "plots"
+            os.makedirs(plot_dir, exist_ok=True)
+            # Add group name to filename if group is specified
+            group_suffix = f"_group_{group}" if group else ""
+            plot_path = os.path.join(
+                plot_dir,
+                f"answer_length_hist_{os.path.basename(shortname)}{group_suffix}.png",
+            )
+            plt.savefig(plot_path)
+            plt.close()
+            print(f"Saved histogram plot to {plot_path}")
         return {
             "minimize_answer_length_stats": df.describe()[0].to_dict(),
             "reduction_rate_stats": df_reduction.describe()[0].to_dict(),
