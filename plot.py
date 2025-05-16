@@ -158,7 +158,7 @@ class PlotUtils:
         ]
         plt.rcParams.update(
             {
-                "font.size": 45,
+                "font.size": 32,
             }
         )
 
