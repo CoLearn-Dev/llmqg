@@ -56,5 +56,5 @@ bash download_data.sh
 To generate our QA dataset, use the following command:
 
 ```bash
-python utils/datasets.py
+python datasets.py <dataset_name_and_method> [--flags]
 ```
