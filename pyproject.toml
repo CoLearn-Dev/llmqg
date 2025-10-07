@@ -2,7 +2,7 @@
 name = "llmqg"
 version = "0.1.0"
 description = ""
-authors = ["nociza <azicon@berkeley.edu>"]
+authors = ["anonymous <anonymous@anonymous.anonymous>"]
 readme = "README.md"
 packages = [
     { include = "experiments", from = "." },
