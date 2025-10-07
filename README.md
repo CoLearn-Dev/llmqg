@@ -1,6 +1,6 @@
 # Can LLMs Design Good Questions Based on Context?
 
-This repository accompanies the paper [*Can LLMs Design Good Questions Based on Context?*]() available on arXiv. It provides datasets, experimental scripts, and visualization tools to explore the capability of Large Language Models (LLMs) in designing meaningful and contextually relevant questions.
+This repository accompanies the paper *Can LLMs Design Good Questions Based on Context?*. It provides datasets, experimental scripts, and visualization tools to explore the capability of Large Language Models (LLMs) in designing meaningful and contextually relevant questions.
 
 ## Introduction
 
